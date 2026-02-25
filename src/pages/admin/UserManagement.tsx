@@ -31,7 +31,7 @@ export default function UserManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [form, setForm] = useState({ name: "", employee_id: "", email: "", password: "", role: "worker" as AppRole });
-  const [editForm, setEditForm] = useState({ name: "", employee_id: "", role: "worker" as AppRole });
+  const [editForm, setEditForm] = useState({ name: "", employee_id: "", username: "", role: "worker" as AppRole });
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -102,7 +102,7 @@ export default function UserManagement() {
 
   const openEdit = (user: UserRow) => {
     setSelectedUser(user);
-    setEditForm({ name: user.name, employee_id: user.employee_id, role: user.role ?? "worker" });
+    setEditForm({ name: user.name, employee_id: user.employee_id, username: user.username, role: user.role ?? "worker" });
     setEditDialogOpen(true);
   };
 
@@ -112,7 +112,7 @@ export default function UserManagement() {
 
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ name: editForm.name, employee_id: editForm.employee_id })
+      .update({ name: editForm.name, employee_id: editForm.employee_id, username: editForm.username })
       .eq("user_id", selectedUser.user_id);
 
     if (profileError) {
@@ -252,6 +252,7 @@ export default function UserManagement() {
           <div className="space-y-4">
             <div><Label>Full Name</Label><Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></div>
             <div><Label>Employee ID</Label><Input value={editForm.employee_id} onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })} /></div>
+            <div><Label>Email / Username</Label><Input value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} /></div>
             <div><Label>Role</Label>
               <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v as AppRole })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
