@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
@@ -26,7 +27,11 @@ interface UserRow {
 export default function UserManagement() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [form, setForm] = useState({ name: "", employee_id: "", email: "", password: "", role: "worker" as AppRole });
+  const [editForm, setEditForm] = useState({ name: "", employee_id: "", role: "worker" as AppRole });
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -51,7 +56,6 @@ export default function UserManagement() {
     if (!form.name || !form.employee_id || !form.email || !form.password) return;
     setSubmitting(true);
 
-    // Sign up user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -65,7 +69,6 @@ export default function UserManagement() {
 
     const userId = authData.user.id;
 
-    // Create profile
     const { error: profileError } = await supabase.from("profiles").insert({
       user_id: userId,
       name: form.name,
@@ -79,7 +82,6 @@ export default function UserManagement() {
       return;
     }
 
-    // Assign role
     const { error: roleError } = await supabase.from("user_roles").insert({
       user_id: userId,
       role: form.role,
@@ -94,6 +96,71 @@ export default function UserManagement() {
     toast({ title: "User created successfully" });
     setForm({ name: "", employee_id: "", email: "", password: "", role: "worker" });
     setDialogOpen(false);
+    setSubmitting(false);
+    fetchUsers();
+  };
+
+  const openEdit = (user: UserRow) => {
+    setSelectedUser(user);
+    setEditForm({ name: user.name, employee_id: user.employee_id, role: user.role ?? "worker" });
+    setEditDialogOpen(true);
+  };
+
+  const updateUser = async () => {
+    if (!selectedUser || !editForm.name || !editForm.employee_id) return;
+    setSubmitting(true);
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ name: editForm.name, employee_id: editForm.employee_id })
+      .eq("user_id", selectedUser.user_id);
+
+    if (profileError) {
+      toast({ title: "Error updating profile", description: profileError.message, variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+
+    const { error: roleError } = await supabase
+      .from("user_roles")
+      .update({ role: editForm.role })
+      .eq("user_id", selectedUser.user_id);
+
+    if (roleError) {
+      toast({ title: "Error updating role", description: roleError.message, variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+
+    toast({ title: "User updated successfully" });
+    setEditDialogOpen(false);
+    setSelectedUser(null);
+    setSubmitting(false);
+    fetchUsers();
+  };
+
+  const openDelete = (user: UserRow) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const deleteUser = async () => {
+    if (!selectedUser) return;
+    setSubmitting(true);
+
+    // Delete role first, then profile. Auth user remains but profile is removed.
+    await supabase.from("user_roles").delete().eq("user_id", selectedUser.user_id);
+    const { error } = await supabase.from("profiles").delete().eq("user_id", selectedUser.user_id);
+
+    if (error) {
+      toast({ title: "Error deleting user", description: error.message, variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+
+    toast({ title: "User deleted successfully" });
+    setDeleteDialogOpen(false);
+    setSelectedUser(null);
     setSubmitting(false);
     fetchUsers();
   };
@@ -143,6 +210,7 @@ export default function UserManagement() {
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -161,11 +229,61 @@ export default function UserManagement() {
                     {u.status}
                   </Badge>
                 </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => openDelete(u)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Full Name</Label><Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></div>
+            <div><Label>Employee ID</Label><Input value={editForm.employee_id} onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })} /></div>
+            <div><Label>Role</Label>
+              <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v as AppRole })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="worker">Worker</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={updateUser} disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90">Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{selectedUser?.name}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteUser} disabled={submitting} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
