@@ -112,6 +112,18 @@ export default function UserManagement() {
     if (!selectedUser || !editForm.name || !editForm.employee_id) return;
     setSubmitting(true);
 
+    // Update auth email if changed
+    if (editForm.username !== selectedUser.username) {
+      const { data, error: fnError } = await supabase.functions.invoke("admin-update-user", {
+        body: { user_id: selectedUser.user_id, email: editForm.username },
+      });
+      if (fnError || data?.error) {
+        toast({ title: "Error updating auth email", description: data?.error ?? fnError?.message, variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const { error: profileError } = await supabase
       .from("profiles")
       .update({ name: editForm.name, employee_id: editForm.employee_id, username: editForm.username })
