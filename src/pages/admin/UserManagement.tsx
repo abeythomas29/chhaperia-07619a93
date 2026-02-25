@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +29,8 @@ export default function UserManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [form, setForm] = useState({ name: "", employee_id: "", email: "", password: "", role: "worker" as AppRole });
   const [editForm, setEditForm] = useState({ name: "", employee_id: "", username: "", role: "worker" as AppRole });
@@ -165,6 +167,36 @@ export default function UserManagement() {
     fetchUsers();
   };
 
+  const openResetPassword = (user: UserRow) => {
+    setSelectedUser(user);
+    setNewPassword("");
+    setResetDialogOpen(true);
+  };
+
+  const resetPassword = async () => {
+    if (!selectedUser || !newPassword || newPassword.length < 6) {
+      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+
+    const { data, error } = await supabase.functions.invoke("reset-password", {
+      body: { user_id: selectedUser.user_id, new_password: newPassword },
+    });
+
+    if (error || data?.error) {
+      toast({ title: "Error resetting password", description: data?.error ?? error?.message, variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+
+    toast({ title: "Password reset successfully" });
+    setResetDialogOpen(false);
+    setSelectedUser(null);
+    setNewPassword("");
+    setSubmitting(false);
+  };
+
   const toggleStatus = async (userId: string, current: string) => {
     await supabase.from("profiles").update({ status: current === "active" ? "inactive" : "active" }).eq("user_id", userId);
     fetchUsers();
@@ -231,10 +263,13 @@ export default function UserManagement() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Edit user">
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => openDelete(u)}>
+                    <Button variant="ghost" size="icon" onClick={() => openResetPassword(u)} title="Reset password">
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => openDelete(u)} title="Delete user">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -285,6 +320,30 @@ export default function UserManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reset Password</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Set a new password for <strong>{selectedUser?.name}</strong>
+          </p>
+          <div className="space-y-4">
+            <div>
+              <Label>New Password</Label>
+              <Input
+                type="password"
+                placeholder="Min 6 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+            </div>
+            <Button onClick={resetPassword} disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90">
+              Reset Password
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
