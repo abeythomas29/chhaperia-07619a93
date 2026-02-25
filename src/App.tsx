@@ -2,8 +2,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import Login from "./pages/Login";
+import AdminLayout from "./layouts/AdminLayout";
+import WorkerLayout from "./layouts/WorkerLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import ProductionLogs from "./pages/admin/ProductionLogs";
+import Products from "./pages/admin/Products";
+import Clients from "./pages/admin/Clients";
+import UserManagement from "./pages/admin/UserManagement";
+import ProductionEntry from "./pages/worker/ProductionEntry";
+import ProductionHistory from "./pages/worker/ProductionHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +24,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<Dashboard />} />
+              <Route path="logs" element={<ProductionLogs />} />
+              <Route path="products" element={<Products />} />
+              <Route path="clients" element={<Clients />} />
+              <Route path="users" element={<UserManagement />} />
+            </Route>
+            <Route path="/worker" element={<WorkerLayout />}>
+              <Route index element={<ProductionEntry />} />
+              <Route path="history" element={<ProductionHistory />} />
+            </Route>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
