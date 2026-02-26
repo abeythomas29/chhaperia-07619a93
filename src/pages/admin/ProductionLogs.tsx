@@ -7,9 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Download, Search, Pencil, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Download, Search, Pencil, Trash2, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface LogEntry {
   id: string;
@@ -40,6 +44,15 @@ export default function ProductionLogs() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Date range filter
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   // Edit state
   const [editEntry, setEditEntry] = useState<LogEntry | null>(null);
   const [editDate, setEditDate] = useState("");
@@ -67,6 +80,7 @@ export default function ProductionLogs() {
       .limit(500);
 
     setEntries((data as unknown as LogEntry[]) ?? []);
+    setSelectedIds(new Set());
     setLoading(false);
   };
 
@@ -86,13 +100,37 @@ export default function ProductionLogs() {
 
   const filtered = entries.filter((e) => {
     const s = search.toLowerCase();
-    return (
+    const matchesSearch =
       !s ||
       e.product_codes?.code?.toLowerCase().includes(s) ||
       e.company_clients?.name?.toLowerCase().includes(s) ||
-      e.profiles?.name?.toLowerCase().includes(s)
-    );
+      e.profiles?.name?.toLowerCase().includes(s);
+
+    const entryDate = new Date(e.date);
+    const matchesFrom = !dateFrom || entryDate >= dateFrom;
+    const matchesTo = !dateTo || entryDate <= dateTo;
+
+    return matchesSearch && matchesFrom && matchesTo;
   });
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((e) => selectedIds.has(e.id));
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((e) => e.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const exportCSV = () => {
     const rows = [
@@ -172,29 +210,94 @@ export default function ProductionLogs() {
     }
   };
 
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase
+      .from("production_entries")
+      .delete()
+      .in("id", ids);
+
+    setBulkDeleting(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `${ids.length} entries deleted successfully` });
+      setBulkDeleteOpen(false);
+      fetchEntries();
+    }
+  };
+
+  const clearDateFilter = () => {
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Production Logs</h1>
-        <Button onClick={exportCSV} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" /> Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <Button onClick={() => setBulkDeleteOpen(true)} variant="destructive" size="sm">
+              <Trash2 className="h-4 w-4 mr-2" /> Delete {selectedIds.size} Selected
+            </Button>
+          )}
+          <Button onClick={exportCSV} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" /> Export CSV
+          </Button>
+        </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by product, client, production manager..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      {/* Filters */}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by product, client, manager..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "From date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              {dateTo ? format(dateTo, "dd/MM/yyyy") : "To date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
+          </PopoverContent>
+        </Popover>
+
+        {(dateFrom || dateTo) && (
+          <Button variant="ghost" size="sm" onClick={clearDateFilter}>Clear dates</Button>
+        )}
       </div>
 
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox checked={allFilteredSelected} onCheckedChange={toggleSelectAll} aria-label="Select all" />
+              </TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Product Code</TableHead>
               <TableHead>Client</TableHead>
@@ -209,15 +312,18 @@ export default function ProductionLogs() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
               </TableRow>
             ) : (
               filtered.map((e) => (
-                <TableRow key={e.id}>
+                <TableRow key={e.id} data-state={selectedIds.has(e.id) ? "selected" : undefined}>
+                  <TableCell>
+                    <Checkbox checked={selectedIds.has(e.id)} onCheckedChange={() => toggleSelect(e.id)} aria-label="Select row" />
+                  </TableCell>
                   <TableCell>{e.date}</TableCell>
                   <TableCell className="font-medium">{e.product_codes?.code ?? "—"}</TableCell>
                   <TableCell>{e.company_clients?.name ?? "—"}</TableCell>
@@ -320,6 +426,24 @@ export default function ProductionLogs() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} Entries</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.size} production entries? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} disabled={bulkDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {bulkDeleting ? "Deleting..." : `Delete ${selectedIds.size} Entries`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
