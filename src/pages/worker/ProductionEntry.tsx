@@ -141,6 +141,28 @@ export default function ProductionEntry() {
 
           <div>
             <div className="flex items-center justify-between mb-1">
+              <Label>Category</Label>
+              <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-xs text-secondary"><Plus className="h-3 w-3 mr-1" /> Add New</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Add Product Category</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div><Label>Category Name</Label><Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="e.g. Semiconductor Woven Water Blocking Tape" /></div>
+                    <Button type="button" onClick={addCategory} className="w-full bg-secondary hover:bg-secondary/90">Add</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <Select value={form.product_code_id ? productCodes.find(p => p.id === form.product_code_id)?.category_id ?? "" : ""} onValueChange={() => {}}>
+              <SelectTrigger><SelectValue placeholder="Category (auto from product code)" /></SelectTrigger>
+              <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
               <Label>Product Code</Label>
               <Dialog open={productDialogOpen} onOpenChange={setProductDialogOpen}>
                 <DialogTrigger asChild>
@@ -150,21 +172,7 @@ export default function ProductionEntry() {
                   <DialogHeader><DialogTitle>Add Product Code</DialogTitle></DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <Label>Category</Label>
-                        <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button type="button" variant="ghost" size="sm" className="h-6 text-xs text-secondary"><Plus className="h-3 w-3 mr-1" /> Add Category</Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader><DialogTitle>Add Product Category</DialogTitle></DialogHeader>
-                            <div className="space-y-4">
-                              <div><Label>Category Name</Label><Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="e.g. Semiconductor Woven Water Blocking Tape" /></div>
-                              <Button type="button" onClick={addCategory} className="w-full bg-secondary hover:bg-secondary/90">Add</Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
+                      <Label>Category</Label>
                       <Select value={newProductCat} onValueChange={setNewProductCat}>
                         <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                         <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
