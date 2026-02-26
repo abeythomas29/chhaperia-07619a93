@@ -30,9 +30,11 @@ export default function ProductionEntry() {
 
   const [newProductCode, setNewProductCode] = useState("");
   const [newProductCat, setNewProductCat] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [newClientName, setNewClientName] = useState("");
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [clientDialogOpen, setClientDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -64,6 +66,7 @@ export default function ProductionEntry() {
       rolls_count: Number(form.rolls_count),
       quantity_per_roll: Number(form.quantity_per_roll),
       unit: form.unit,
+      total_quantity: totalQuantity,
     });
 
     if (error) {
@@ -76,6 +79,17 @@ export default function ProductionEntry() {
       }, 2000);
     }
     setSubmitting(false);
+  };
+
+  const addCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    const { data, error } = await supabase.from("product_categories").insert({ name: newCategoryName.trim() }).select().single();
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Category added" });
+    setCategoryDialogOpen(false);
+    setNewCategoryName("");
+    await fetchData();
+    if (data) setNewProductCat(data.id);
   };
 
   const addProductCode = async () => {
@@ -135,7 +149,22 @@ export default function ProductionEntry() {
                 <DialogContent>
                   <DialogHeader><DialogTitle>Add Product Code</DialogTitle></DialogHeader>
                   <div className="space-y-4">
-                    <div><Label>Category</Label>
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <Label>Category</Label>
+                        <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button type="button" variant="ghost" size="sm" className="h-6 text-xs text-secondary"><Plus className="h-3 w-3 mr-1" /> Add Category</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader><DialogTitle>Add Product Category</DialogTitle></DialogHeader>
+                            <div className="space-y-4">
+                              <div><Label>Category Name</Label><Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="e.g. Semiconductor Woven Water Blocking Tape" /></div>
+                              <Button type="button" onClick={addCategory} className="w-full bg-secondary hover:bg-secondary/90">Add</Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                       <Select value={newProductCat} onValueChange={setNewProductCat}>
                         <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                         <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>

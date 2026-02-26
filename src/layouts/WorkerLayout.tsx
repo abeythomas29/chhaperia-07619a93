@@ -1,4 +1,4 @@
-import { Outlet, Navigate, Link, useLocation } from "react-router-dom";
+import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { ClipboardList, History, LogOut, Loader2 } from "lucide-react";
 import logo from "@/assets/logo.png";
@@ -8,6 +8,12 @@ import { cn } from "@/lib/utils";
 export default function WorkerLayout() {
   const { user, loading, signOut, profileName } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   if (loading) {
     return (
@@ -33,7 +39,7 @@ export default function WorkerLayout() {
         </Link>
         <div className="flex items-center gap-2">
           <span className="text-xs opacity-80 hidden sm:inline">{profileName ?? "Production Manager"}</span>
-          <Button variant="ghost" size="icon" onClick={signOut} className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary/80">
+          <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary/80">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
