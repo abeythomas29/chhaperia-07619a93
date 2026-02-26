@@ -152,6 +152,13 @@ export type Database = {
             referencedRelation: "product_codes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "production_entries_worker_id_profiles_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       profiles: {
