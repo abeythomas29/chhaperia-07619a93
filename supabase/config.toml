@@ -1,7 +1,1 @@
-project_id = "zzbpgwivxvkhabhpxjqt"
-
-[functions.reset-password]
-verify_jwt = false
-
-[functions.admin-update-user]
-verify_jwt = false
+project_id = "eezbgxbbgaqifgcxxbun"
