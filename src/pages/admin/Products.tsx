@@ -146,6 +146,17 @@ export default function Products() {
     fetchData();
   };
 
+  const q = searchQuery.toLowerCase();
+  const filteredCategories = categories.filter(c =>
+    (filterStatus === "all" || c.status === filterStatus) &&
+    c.name.toLowerCase().includes(q)
+  );
+  const filteredCodes = codes.filter(c =>
+    (filterStatus === "all" || c.status === filterStatus) &&
+    (filterCat === "all" || c.category_id === filterCat) &&
+    (c.code.toLowerCase().includes(q) || c.product_categories?.name?.toLowerCase().includes(q))
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -184,12 +195,40 @@ export default function Products() {
         </div>
       </div>
 
+      {/* Search & Filter Bar */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search categories or product codes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={filterCat} onValueChange={setFilterCat}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         {/* Categories Card */}
         <Card>
-          <CardHeader><CardTitle className="text-lg">Categories ({categories.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Categories ({filteredCategories.length})</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {categories.map((c) => (
+            {filteredCategories.map((c) => (
               <div key={c.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50">
                 <span className="font-medium text-sm">{c.name}</span>
                 <div className="flex items-center gap-1">
