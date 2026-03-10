@@ -33,6 +33,9 @@ export default function Products() {
   const [selectedCat, setSelectedCat] = useState("");
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [codeDialogOpen, setCodeDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCat, setFilterCat] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   // Edit state
   const [editCatDialogOpen, setEditCatDialogOpen] = useState(false);
