@@ -53,19 +53,19 @@ export default function Dashboard() {
       const monthAgo = format(subDays(now, 30), "yyyy-MM-dd");
 
       const [todayRes, weekRes, monthRes, productsRes, clientsRes] = await Promise.all([
-        supabase.from("production_entries").select("id", { count: "exact" }).eq("date", todayStr),
-        supabase.from("production_entries").select("id", { count: "exact" }).gte("date", weekAgo),
-        supabase.from("production_entries").select("id", { count: "exact" }).gte("date", monthAgo),
-        supabase.from("product_codes").select("id", { count: "exact" }).eq("status", "active"),
-        supabase.from("company_clients").select("id", { count: "exact" }).eq("status", "active"),
+        supabase.from("production_entries").select("id").eq("date", todayStr),
+        supabase.from("production_entries").select("id").gte("date", weekAgo),
+        supabase.from("production_entries").select("id").gte("date", monthAgo),
+        supabase.from("product_codes").select("id").eq("status", "active"),
+        supabase.from("company_clients").select("id").eq("status", "active"),
       ]);
 
       setStats({
-        today: todayRes.count ?? 0,
-        week: weekRes.count ?? 0,
-        month: monthRes.count ?? 0,
-        totalProducts: productsRes.count ?? 0,
-        totalClients: clientsRes.count ?? 0,
+        today: todayRes.data?.length ?? 0,
+        week: weekRes.data?.length ?? 0,
+        month: monthRes.data?.length ?? 0,
+        totalProducts: productsRes.data?.length ?? 0,
+        totalClients: clientsRes.data?.length ?? 0,
       });
 
       const { data: entries } = await supabase
