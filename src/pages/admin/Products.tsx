@@ -128,6 +128,13 @@ export default function Products() {
   // Delete handlers
   const confirmDeleteCategory = async () => {
     if (!deleteCatId) return;
+    const { data: linkedCodes } = await supabase.from("product_codes").select("id").eq("category_id", deleteCatId).limit(1);
+    if (linkedCodes && linkedCodes.length > 0) {
+      toast({ title: "Cannot delete", description: "This category has product codes linked to it. Remove or reassign them first.", variant: "destructive" });
+      setDeleteCatOpen(false);
+      setDeleteCatId(null);
+      return;
+    }
     const { error } = await supabase.from("product_categories").delete().eq("id", deleteCatId);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Category deleted" });
@@ -138,6 +145,13 @@ export default function Products() {
 
   const confirmDeleteCode = async () => {
     if (!deleteCodeId) return;
+    const { data: linkedEntries } = await supabase.from("production_entries").select("id").eq("product_code_id", deleteCodeId).limit(1);
+    if (linkedEntries && linkedEntries.length > 0) {
+      toast({ title: "Cannot delete", description: "This product code is used in production entries. Remove those entries first or deactivate the product instead.", variant: "destructive" });
+      setDeleteCodeOpen(false);
+      setDeleteCodeId(null);
+      return;
+    }
     const { error } = await supabase.from("product_codes").delete().eq("id", deleteCodeId);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Product code deleted" });
