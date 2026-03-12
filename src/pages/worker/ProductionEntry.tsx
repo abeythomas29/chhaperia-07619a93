@@ -59,7 +59,7 @@ export default function ProductionEntry() {
     if (!user || !form.product_code_id || !form.client_id || !form.rolls_count || !form.quantity_per_roll) return;
     setSubmitting(true);
 
-    const { error } = await supabase.from("production_entries").insert({
+    const insertPayload: Record<string, unknown> = {
       product_code_id: form.product_code_id,
       client_id: form.client_id,
       date: form.date,
@@ -67,8 +67,12 @@ export default function ProductionEntry() {
       rolls_count: Number(form.rolls_count),
       quantity_per_roll: Number(form.quantity_per_roll),
       unit: form.unit,
-      thickness_mm: form.thickness_mm ? Number(form.thickness_mm) : null,
-    });
+    };
+    if (form.thickness_mm) {
+      insertPayload.thickness_mm = Number(form.thickness_mm);
+    }
+
+    const { error } = await supabase.from("production_entries").insert(insertPayload as any);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
