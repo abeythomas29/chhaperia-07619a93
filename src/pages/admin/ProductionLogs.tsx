@@ -77,7 +77,7 @@ export default function ProductionLogs() {
     setLoading(true);
     const { data } = await supabase
       .from("production_entries")
-      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, product_code_id, client_id, product_codes(code), company_clients(name), profiles:worker_id(name)")
+      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, product_codes(code), company_clients(name), profiles:worker_id(name)")
       .order("date", { ascending: false })
       .limit(500);
 
