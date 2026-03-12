@@ -26,7 +26,7 @@ export default function ProductionHistory() {
     const fetch = async () => {
       const { data } = await supabase
         .from("production_entries")
-        .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, product_codes(code), company_clients(name)")
+        .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_codes(code), company_clients(name)")
         .eq("worker_id", user.id)
         .order("date", { ascending: false })
         .limit(200);
