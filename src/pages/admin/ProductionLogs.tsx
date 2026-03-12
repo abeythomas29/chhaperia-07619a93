@@ -338,6 +338,7 @@ export default function ProductionLogs() {
                   <TableCell className="text-right">{e.quantity_per_roll}</TableCell>
                   <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
                   <TableCell>{e.unit}</TableCell>
+                  <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
