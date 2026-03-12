@@ -75,11 +75,19 @@ export default function ProductionLogs() {
 
   const fetchEntries = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("production_entries")
-      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, product_codes(code), company_clients(name), profiles:worker_id(name)")
+      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, product_codes(code), company_clients(name), profiles:profiles!production_entries_worker_id_profiles_fkey(name)")
       .order("date", { ascending: false })
       .limit(500);
+
+    if (error) {
+      toast({ title: "Failed to load production logs", description: error.message, variant: "destructive" });
+      setEntries([]);
+      setSelectedIds(new Set());
+      setLoading(false);
+      return;
+    }
 
     setEntries((data as unknown as LogEntry[]) ?? []);
     setSelectedIds(new Set());
