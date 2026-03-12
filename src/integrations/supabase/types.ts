@@ -106,6 +106,7 @@ export type Database = {
           product_code_id: string
           quantity_per_roll: number
           rolls_count: number
+          thickness_mm: number | null
           total_quantity: number | null
           unit: string
           updated_at: string
@@ -119,6 +120,7 @@ export type Database = {
           product_code_id: string
           quantity_per_roll: number
           rolls_count: number
+          thickness_mm?: number | null
           total_quantity?: number | null
           unit?: string
           updated_at?: string
@@ -132,6 +134,7 @@ export type Database = {
           product_code_id?: string
           quantity_per_roll?: number
           rolls_count?: number
+          thickness_mm?: number | null
           total_quantity?: number | null
           unit?: string
           updated_at?: string
