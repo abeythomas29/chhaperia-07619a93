@@ -11,6 +11,7 @@ interface HistoryEntry {
   quantity_per_roll: number;
   total_quantity: number | null;
   unit: string;
+  thickness_mm: number | null;
   product_codes: { code: string } | null;
   company_clients: { name: string } | null;
 }
