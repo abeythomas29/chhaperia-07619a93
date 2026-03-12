@@ -136,7 +136,7 @@ export default function ProductionLogs() {
 
   const exportCSV = () => {
     const rows = [
-      ["Date", "Product Code", "Client", "Production Manager", "Rolls", "Qty/Roll", "Total", "Unit"],
+      ["Date", "Product Code", "Client", "Production Manager", "Rolls", "Qty/Roll", "Total", "Unit", "Thickness (mm)"],
       ...filtered.map((e) => [
         e.date,
         e.product_codes?.code ?? "",
@@ -146,6 +146,7 @@ export default function ProductionLogs() {
         e.quantity_per_roll,
         e.total_quantity ?? "",
         e.unit,
+        e.thickness_mm ?? "",
       ]),
     ];
     const csv = rows.map((r) => r.join(",")).join("\n");
