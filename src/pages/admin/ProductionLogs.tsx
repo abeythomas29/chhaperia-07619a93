@@ -22,6 +22,7 @@ interface LogEntry {
   quantity_per_roll: number;
   total_quantity: number | null;
   unit: string;
+  thickness_mm: number | null;
   product_code_id: string;
   client_id: string;
   product_codes: { code: string } | null;
