@@ -167,6 +167,7 @@ export default function ProductionLogs() {
     setEditRolls(String(entry.rolls_count));
     setEditQtyPerRoll(String(entry.quantity_per_roll));
     setEditUnit(entry.unit);
+    setEditThickness(entry.thickness_mm != null ? String(entry.thickness_mm) : "");
   };
 
   const handleSaveEdit = async () => {
