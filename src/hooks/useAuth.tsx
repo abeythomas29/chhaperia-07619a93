@@ -27,9 +27,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileName, setProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRole = async (userId: string, retries = 3) => {
     const { data } = await supabase.rpc("get_user_role", { _user_id: userId });
-    setRole(data as AppRole);
+    if (data) {
+      setRole(data as AppRole);
+    } else if (retries > 0) {
+      // Trigger may not have completed yet, retry after a short delay
+      setTimeout(() => fetchRole(userId, retries - 1), 1000);
+    } else {
+      setRole("worker"); // Fallback default
+    }
   };
 
   const fetchProfile = async (userId: string) => {
