@@ -1,0 +1,1 @@
+-- This is a no-op migration; password will be reset via auth admin API
