@@ -68,12 +68,8 @@ export default function UserManagement() {
 
     if (authError) {
       if (authError.message?.toLowerCase().includes("already registered")) {
-        // User exists in auth but may be missing profile/role — look up via edge function
-        const { data: lookupData, error: lookupError } = await supabase.functions.invoke("admin-update-user", {
-          body: { user_id: "__lookup__", email: form.email, password: form.password },
-        });
-        // If lookup fails, we need to find the user another way
-        // Try to create profile anyway by searching existing profiles
+        // User exists in auth but may be missing profile/role
+        // Check if profile already exists
         const { data: existingProfile } = await supabase
           .from("profiles")
           .select("user_id")
@@ -86,18 +82,18 @@ export default function UserManagement() {
           return;
         }
 
-        // Auth user exists but no profile — we need to get their user_id via admin API
-        const { data: adminLookup, error: adminError } = await supabase.functions.invoke("admin-lookup-user", {
-          body: { email: form.email },
+        // Look up user_id via the admin edge function
+        const { data: lookupData, error: lookupError } = await supabase.functions.invoke("admin-update-user", {
+          body: { action: "lookup_by_email", email: form.email },
         });
 
-        if (adminError || adminLookup?.error || !adminLookup?.user_id) {
-          toast({ title: "Error", description: adminLookup?.error ?? adminError?.message ?? "Could not find existing user", variant: "destructive" });
+        if (lookupError || lookupData?.error || !lookupData?.user_id) {
+          toast({ title: "Error", description: lookupData?.error ?? lookupError?.message ?? "Could not find existing user", variant: "destructive" });
           setSubmitting(false);
           return;
         }
 
-        userId = adminLookup.user_id;
+        userId = lookupData.user_id;
       } else {
         toast({ title: "Error", description: authError.message, variant: "destructive" });
         setSubmitting(false);

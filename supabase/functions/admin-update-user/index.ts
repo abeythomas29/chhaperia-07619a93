@@ -28,19 +28,15 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await callerClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user: caller }, error: userError } = await callerClient.auth.getUser();
+    if (userError || !caller) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const callerId = claimsData.claims.sub;
-
-    // Check caller is super_admin or admin
-    const { data: isAdmin } = await callerClient.rpc("is_admin", { _user_id: callerId });
+    const { data: isAdmin } = await callerClient.rpc("is_admin", { _user_id: caller.id });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Only admins can manage users" }), {
         status: 403,
@@ -48,7 +44,45 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id, email, password } = await req.json();
+    const body = await req.json();
+    const { action, user_id, email, password } = body;
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Action: lookup user by email
+    if (action === "lookup_by_email") {
+      if (!email) {
+        return new Response(JSON.stringify({ error: "email is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: usersData, error: listError } = await adminClient.auth.admin.listUsers();
+      if (listError) {
+        return new Response(JSON.stringify({ error: listError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const found = usersData.users.find(
+        (u) => u.email?.toLowerCase() === email.toLowerCase()
+      );
+
+      if (!found) {
+        return new Response(JSON.stringify({ error: "User not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ user_id: found.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Default action: update user
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id is required" }), {
         status: 400,
@@ -78,7 +112,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { error } = await adminClient.auth.admin.updateUserById(user_id, updatePayload);
 
     if (error) {
