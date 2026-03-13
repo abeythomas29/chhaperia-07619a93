@@ -42,7 +42,7 @@ export default function WorkerLayout() {
             <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-xs font-bold">
               {(profileName ?? "U").charAt(0).toUpperCase()}
             </div>
-            <span className="text-sm font-medium">{profileName ?? "Worker"}</span>
+            <span className="text-sm font-medium">{profileName ?? "Production Manager"}</span>
           </div>
           <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary/80">
             <LogOut className="h-4 w-4" />
