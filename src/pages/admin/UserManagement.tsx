@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, KeyRound } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil, Trash2, KeyRound } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -38,132 +38,12 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*").order("name");
     const { data: roles } = await supabase.from("user_roles").select("*");
-
     const roleMap = new Map<string, AppRole>();
     roles?.forEach((r) => roleMap.set(r.user_id, r.role));
-
-    setUsers(
-      (profiles ?? []).map((p) => ({
-        ...p,
-        role: roleMap.get(p.user_id),
-      }))
-    );
+    setUsers((profiles ?? []).map((p) => ({ ...p, role: roleMap.get(p.user_id) })));
   };
 
   useEffect(() => { fetchUsers(); }, []);
-
-  const createUser = async () => {
-    if (!form.name || !form.employee_id || !form.email || !form.password) return;
-    setSubmitting(true);
-
-    let userId: string | null = null;
-
-    const tempClient = createClient(
-      import.meta.env.VITE_SUPABASE_URL,
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    );
-
-    // Try to sign up using temporary client (keeps admin session intact)
-    const { data: authData, error: authError } = await tempClient.auth.signUp({
-      email: form.email,
-      password: form.password,
-    });
-
-    if (authError) {
-      if (authError.message?.toLowerCase().includes("already registered")) {
-        // User exists in auth but may be missing profile/role
-        const { data: existingProfile } = await supabase
-          .from("profiles")
-          .select("user_id")
-          .eq("username", form.email)
-          .maybeSingle();
-
-        if (existingProfile) {
-          toast({ title: "User already exists", description: "This user already has a profile. Check the user list.", variant: "destructive" });
-          setSubmitting(false);
-          return;
-        }
-
-        // Sign in with temp client to retrieve existing auth user id
-        const { data: signInData, error: signInError } = await tempClient.auth.signInWithPassword({
-          email: form.email,
-          password: form.password,
-        });
-
-        if (signInError || !signInData.user) {
-          toast({ title: "Error", description: "User exists but could not verify credentials: " + (signInError?.message ?? "Unknown error"), variant: "destructive" });
-          setSubmitting(false);
-          return;
-        }
-
-        userId = signInData.user.id;
-      } else {
-        toast({ title: "Error", description: authError.message, variant: "destructive" });
-        setSubmitting(false);
-        return;
-      }
-    } else {
-      userId = authData.user?.id ?? null;
-    }
-
-    // Ensure temp client session is cleaned up
-    await tempClient.auth.signOut();
-
-    if (!userId) {
-      toast({ title: "Error", description: "Failed to get user ID", variant: "destructive" });
-      setSubmitting(false);
-      return;
-    }
-
-    // Check if profile already exists
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!existingProfile) {
-      const { error: profileError } = await supabase.from("profiles").insert({
-        user_id: userId,
-        name: form.name,
-        employee_id: form.employee_id,
-        username: form.email,
-      });
-
-      if (profileError) {
-        toast({ title: "Error creating profile", description: profileError.message, variant: "destructive" });
-        setSubmitting(false);
-        return;
-      }
-    }
-
-    // Check if role already exists
-    const { data: existingRole } = await supabase
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!existingRole) {
-      const { error: roleError } = await supabase.from("user_roles").insert({
-        user_id: userId,
-        role: form.role,
-      });
-
-      if (roleError) {
-        toast({ title: "Error assigning role", description: roleError.message, variant: "destructive" });
-        setSubmitting(false);
-        return;
-      }
-    }
-
-    toast({ title: "User created successfully" });
-    setForm({ name: "", employee_id: "", email: "", password: "", role: "worker" });
-    setDialogOpen(false);
-    setSubmitting(false);
-    fetchUsers();
-  };
 
   const openEdit = (user: UserRow) => {
     setSelectedUser(user);
@@ -175,7 +55,6 @@ export default function UserManagement() {
     if (!selectedUser || !editForm.name || !editForm.employee_id) return;
     setSubmitting(true);
 
-    // Update auth email if changed
     if (editForm.username !== selectedUser.username) {
       const { data, error: fnError } = await supabase.functions.invoke("admin-update-user", {
         body: { user_id: selectedUser.user_id, email: editForm.username },
@@ -224,17 +103,13 @@ export default function UserManagement() {
   const deleteUser = async () => {
     if (!selectedUser) return;
     setSubmitting(true);
-
-    // Delete role first, then profile. Auth user remains but profile is removed.
     await supabase.from("user_roles").delete().eq("user_id", selectedUser.user_id);
     const { error } = await supabase.from("profiles").delete().eq("user_id", selectedUser.user_id);
-
     if (error) {
       toast({ title: "Error deleting user", description: error.message, variant: "destructive" });
       setSubmitting(false);
       return;
     }
-
     toast({ title: "User deleted successfully" });
     setDeleteDialogOpen(false);
     setSelectedUser(null);
@@ -254,17 +129,14 @@ export default function UserManagement() {
       return;
     }
     setSubmitting(true);
-
     const { data, error } = await supabase.functions.invoke("reset-password", {
       body: { user_id: selectedUser.user_id, new_password: newPassword },
     });
-
     if (error || data?.error) {
       toast({ title: "Error resetting password", description: data?.error ?? error?.message, variant: "destructive" });
       setSubmitting(false);
       return;
     }
-
     toast({ title: "Password reset successfully" });
     setResetDialogOpen(false);
     setSelectedUser(null);
@@ -281,31 +153,6 @@ export default function UserManagement() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">User Management</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="bg-secondary hover:bg-secondary/90"><Plus className="h-4 w-4 mr-1" /> Add User</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create New User</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div><Label>Full Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div><Label>Employee ID</Label><Input value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} /></div>
-              <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-              <div><Label>Password</Label><Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></div>
-              <div><Label>Role</Label>
-                <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="worker">Production Manager</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="super_admin">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={createUser} disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90">Create User</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="border rounded-lg">
