@@ -39,13 +39,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, retries = 3) => {
     const { data } = await supabase
       .from("profiles")
       .select("name")
       .eq("user_id", userId)
-      .single();
-    setProfileName(data?.name ?? null);
+      .maybeSingle();
+    if (data?.name) {
+      setProfileName(data.name);
+    } else if (retries > 0) {
+      setTimeout(() => fetchProfile(userId, retries - 1), 1000);
+    }
   };
 
   useEffect(() => {
