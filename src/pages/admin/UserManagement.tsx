@@ -70,7 +70,6 @@ export default function UserManagement() {
     if (authError) {
       if (authError.message?.toLowerCase().includes("already registered")) {
         // User exists in auth but may be missing profile/role
-        // Check if profile already exists
         const { data: existingProfile } = await supabase
           .from("profiles")
           .select("user_id")
@@ -83,18 +82,28 @@ export default function UserManagement() {
           return;
         }
 
-        // Look up user_id via the admin edge function
-        const { data: lookupData, error: lookupError } = await supabase.functions.invoke("admin-update-user", {
-          body: { action: "lookup_by_email", email: form.email },
+        // Use a temporary client to sign in as the user and get their ID
+        // This doesn't affect the admin's session
+        const tempClient = createClient(
+          "https://chhaperia-supabase-proxy.chhaperia.workers.dev",
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6YnBnd2l2eHZraGFiaHB4anF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTAzMTYsImV4cCI6MjA4NzU4NjMxNn0.cIAHZMeMdCN3tadOMwQcbH-tBXXSHaoAFwBGQ4bU7xI",
+          { auth: { persistSession: false, autoRefreshToken: false } }
+        );
+        
+        const { data: signInData, error: signInError } = await tempClient.auth.signInWithPassword({
+          email: form.email,
+          password: form.password,
         });
 
-        if (lookupError || lookupData?.error || !lookupData?.user_id) {
-          toast({ title: "Error", description: lookupData?.error ?? lookupError?.message ?? "Could not find existing user", variant: "destructive" });
+        if (signInError || !signInData.user) {
+          toast({ title: "Error", description: "User exists but could not verify credentials: " + (signInError?.message ?? "Unknown error"), variant: "destructive" });
           setSubmitting(false);
           return;
         }
 
-        userId = lookupData.user_id;
+        userId = signInData.user.id;
+        // Sign out of temp client
+        await tempClient.auth.signOut();
       } else {
         toast({ title: "Error", description: authError.message, variant: "destructive" });
         setSubmitting(false);
