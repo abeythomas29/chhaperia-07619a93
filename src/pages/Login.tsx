@@ -34,10 +34,19 @@ export default function Login() {
     return <Navigate to="/admin" replace />;
   }
 
+  // User is authenticated but role hasn't loaded yet — brief wait, then fallback
   if (user && !role) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Loading your account...</p>
+        <Button variant="outline" size="sm" onClick={async () => {
+          const { signOut } = await import("@/integrations/supabase/client").then(m => ({ signOut: () => m.supabase.auth.signOut() }));
+          await signOut();
+          window.location.reload();
+        }}>
+          Sign out and try again
+        </Button>
       </div>
     );
   }
