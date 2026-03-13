@@ -29,6 +29,15 @@ export default function Login() {
     return <Navigate to="/admin" replace />;
   }
 
+  // User is authenticated but role hasn't loaded yet — show spinner
+  if (user && !role) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);

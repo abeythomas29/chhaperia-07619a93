@@ -37,8 +37,13 @@ export default function WorkerLayout() {
           <img src={logo} alt="Chhaperia Cables" className="h-8 w-auto" />
           <span className="font-bold text-sm">Chhaperia Cables</span>
         </Link>
-        <div className="flex items-center gap-2">
-          <span className="text-xs opacity-80 hidden sm:inline">{profileName ?? "Production Manager"}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-primary-foreground/10 rounded-full px-3 py-1">
+            <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-xs font-bold">
+              {(profileName ?? "U").charAt(0).toUpperCase()}
+            </div>
+            <span className="text-sm font-medium">{profileName ?? "Worker"}</span>
+          </div>
           <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary/80">
             <LogOut className="h-4 w-4" />
           </Button>
