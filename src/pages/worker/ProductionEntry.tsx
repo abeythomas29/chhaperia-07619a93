@@ -220,7 +220,7 @@ export default function ProductionEntry() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Number of Rolls</Label>
-              <Input type="number" min="1" value={form.rolls_count} onChange={(e) => setForm({ ...form, rolls_count: e.target.value })} placeholder="0" />
+              <Input type="number" min="0" step="0.01" value={form.rolls_count} onChange={(e) => setForm({ ...form, rolls_count: e.target.value })} placeholder="0" />
             </div>
             <div>
               <Label>Quantity per Roll</Label>
