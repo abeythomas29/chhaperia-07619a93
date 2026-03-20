@@ -347,14 +347,30 @@ export default function StockManagement() {
             </div>
             <div className="space-y-2">
               <Label>Product Code</Label>
-              <Select value={issueProductCodeId} onValueChange={setIssueProductCodeId}>
+              <Select value={issueProductCodeId} onValueChange={(v) => { setIssueProductCodeId(v); const s = summaries.find(s => s.product_code_id === v); if (s) setIssueUnit(s.unit); }}>
                 <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                 <SelectContent>
-                  {productCodes.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.code}</SelectItem>
-                  ))}
+                  {productCodes.map((p) => {
+                    const stock = summaries.find(s => s.product_code_id === p.id);
+                    return (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.code} {stock ? `(Available: ${stock.available.toLocaleString()} ${stock.unit})` : ""}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
+              {issueProductCodeId && (() => {
+                const stock = summaries.find(s => s.product_code_id === issueProductCodeId);
+                if (!stock) return null;
+                return (
+                  <div className="flex gap-4 text-sm p-2 rounded bg-muted">
+                    <span>Produced: <strong className="text-green-600">{stock.produced.toLocaleString()}</strong></span>
+                    <span>Issued: <strong className="text-red-500">{stock.issued.toLocaleString()}</strong></span>
+                    <span>Available: <strong className={stock.available > 0 ? "text-primary" : "text-destructive"}>{stock.available.toLocaleString()} {stock.unit}</strong></span>
+                  </div>
+                );
+              })()}
             </div>
             <div className="space-y-2">
               <Label>Client</Label>
