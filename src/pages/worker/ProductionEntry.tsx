@@ -22,7 +22,7 @@ export default function ProductionEntry() {
   const [form, setForm] = useState({
     date: format(new Date(), "yyyy-MM-dd"),
     product_code_id: "",
-    client_id: "",
+    client_id: "", // kept for backwards compat but not shown in form
     rolls_count: "",
     quantity_per_roll: "",
     unit: "meters",
