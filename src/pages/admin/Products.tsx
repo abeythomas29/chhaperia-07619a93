@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ChevronRight, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
@@ -28,13 +28,12 @@ interface ProductCode {
 export default function Products() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [codes, setCodes] = useState<ProductCode[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [newCategory, setNewCategory] = useState("");
   const [newCode, setNewCode] = useState("");
-  const [selectedCat, setSelectedCat] = useState("");
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [codeDialogOpen, setCodeDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterCat, setFilterCat] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
 
   // Edit state
@@ -77,12 +76,11 @@ export default function Products() {
   };
 
   const addCode = async () => {
-    if (!newCode.trim() || !selectedCat) return;
-    const { error } = await supabase.from("product_codes").insert({ code: newCode.trim(), category_id: selectedCat });
+    if (!newCode.trim() || !selectedCategory) return;
+    const { error } = await supabase.from("product_codes").insert({ code: newCode.trim(), category_id: selectedCategory.id });
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Product code added" });
     setNewCode("");
-    setSelectedCat("");
     setCodeDialogOpen(false);
     fetchData();
   };
@@ -93,7 +91,6 @@ export default function Products() {
     fetchData();
   };
 
-  // Edit handlers
   const openEditCategory = (cat: Category) => {
     setEditCat(cat);
     setEditCatName(cat.name);
@@ -125,7 +122,6 @@ export default function Products() {
     fetchData();
   };
 
-  // Delete handlers
   const confirmDeleteCategory = async () => {
     if (!deleteCatId) return;
     const { data: linkedCodes } = await supabase.from("product_codes").select("id").eq("category_id", deleteCatId).limit(1);
@@ -147,7 +143,7 @@ export default function Products() {
     if (!deleteCodeId) return;
     const { data: linkedEntries } = await supabase.from("production_entries").select("id").eq("product_code_id", deleteCodeId).limit(1);
     if (linkedEntries && linkedEntries.length > 0) {
-      toast({ title: "Cannot delete", description: "This product code is used in production entries. Remove those entries first or deactivate the product instead.", variant: "destructive" });
+      toast({ title: "Cannot delete", description: "This product code is used in production entries. Deactivate it instead.", variant: "destructive" });
       setDeleteCodeOpen(false);
       setDeleteCodeId(null);
       return;
@@ -161,24 +157,35 @@ export default function Products() {
   };
 
   const q = searchQuery.toLowerCase();
+
+  // Category codes count
+  const codeCountByCategory = codes.reduce<Record<string, number>>((acc, c) => {
+    acc[c.category_id] = (acc[c.category_id] ?? 0) + 1;
+    return acc;
+  }, {});
+
   const filteredCategories = categories.filter(c =>
     (filterStatus === "all" || c.status === filterStatus) &&
     c.name.toLowerCase().includes(q)
   );
-  const filteredCodes = codes.filter(c =>
-    (filterStatus === "all" || c.status === filterStatus) &&
-    (filterCat === "all" || c.category_id === filterCat) &&
-    (c.code.toLowerCase().includes(q) || c.product_categories?.name?.toLowerCase().includes(q))
-  );
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Product Management</h1>
-        <div className="flex gap-2">
+  const filteredCodes = selectedCategory
+    ? codes.filter(c =>
+        c.category_id === selectedCategory.id &&
+        (filterStatus === "all" || c.status === filterStatus) &&
+        c.code.toLowerCase().includes(q)
+      )
+    : [];
+
+  // ─── Category List View ───
+  if (!selectedCategory) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Product Management</h1>
           <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm"><Plus className="h-4 w-4 mr-1" /> Category</Button>
+              <Button size="sm" className="bg-secondary hover:bg-secondary/90"><Plus className="h-4 w-4 mr-1" /> Add Category</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add Category</DialogTitle></DialogHeader>
@@ -188,45 +195,122 @@ export default function Products() {
               </div>
             </DialogContent>
           </Dialog>
-          <Dialog open={codeDialogOpen} onOpenChange={setCodeDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-secondary hover:bg-secondary/90"><Plus className="h-4 w-4 mr-1" /> Product Code</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Add Product Code</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div><Label>Category</Label>
-                  <Select value={selectedCat} onValueChange={setSelectedCat}>
-                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                    <SelectContent>{categories.filter(c => c.status === "active").map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Product Code</Label><Input value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="e.g. CHSCWWBT 18" /></div>
-                <Button onClick={addCode} className="w-full bg-secondary hover:bg-secondary/90">Add</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
+
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search categories..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-3">
+          {filteredCategories.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">No categories found</p>
+          ) : (
+            filteredCategories.map((c) => (
+              <Card
+                key={c.id}
+                className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all"
+                onClick={() => { setSelectedCategory(c); setSearchQuery(""); }}
+              >
+                <CardContent className="flex items-center justify-between py-4 px-5">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="font-semibold">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">{codeCountByCategory[c.id] ?? 0} product codes</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={c.status === "active" ? "default" : "secondary"}
+                      className="cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); toggleStatus("product_categories", c.id, c.status); }}
+                    >
+                      {c.status}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditCategory(c); }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCatId(c.id); setDeleteCatOpen(true); }}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Edit Category Dialog */}
+        <Dialog open={editCatDialogOpen} onOpenChange={setEditCatDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Edit Category</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div><Label>Category Name</Label><Input value={editCatName} onChange={(e) => setEditCatName(e.target.value)} /></div>
+              <Button onClick={saveEditCategory} className="w-full bg-secondary hover:bg-secondary/90">Save</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Category Confirmation */}
+        <AlertDialog open={deleteCatOpen} onOpenChange={setDeleteCatOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Category</AlertDialogTitle>
+              <AlertDialogDescription>This will permanently delete this category. Are you sure?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
+  // ─── Product Codes View (inside a category) ───
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => { setSelectedCategory(null); setSearchQuery(""); }}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{selectedCategory.name}</h1>
+            <p className="text-sm text-muted-foreground">Product codes in this category</p>
+          </div>
+        </div>
+        <Dialog open={codeDialogOpen} onOpenChange={setCodeDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="bg-secondary hover:bg-secondary/90"><Plus className="h-4 w-4 mr-1" /> Add Product Code</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add Product Code</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div><Label>Product Code</Label><Input value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="e.g. CHSCWWBT 18" /></div>
+              <Button onClick={addCode} className="w-full bg-secondary hover:bg-secondary/90">Add</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Search & Filter Bar */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search categories or product codes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Search product codes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
         </div>
-        <Select value={filterCat} onValueChange={setFilterCat}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
           <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
@@ -237,77 +321,32 @@ export default function Products() {
         </Select>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Categories Card */}
-        <Card>
-          <CardHeader><CardTitle className="text-lg">Categories ({filteredCategories.length})</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {filteredCategories.map((c) => (
-              <div key={c.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50">
-                <span className="font-medium text-sm">{c.name}</span>
-                <div className="flex items-center gap-1">
-                  <Badge
-                    variant={c.status === "active" ? "default" : "secondary"}
-                    className="cursor-pointer"
-                    onClick={() => toggleStatus("product_categories", c.id, c.status)}
-                  >
-                    {c.status}
-                  </Badge>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditCategory(c)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { setDeleteCatId(c.id); setDeleteCatOpen(true); }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+      <div className="grid gap-2">
+        {filteredCodes.length === 0 ? (
+          <p className="text-center py-8 text-muted-foreground">No product codes in this category</p>
+        ) : (
+          filteredCodes.map((c) => (
+            <div key={c.id} className="flex items-center justify-between py-3 px-4 rounded-lg border bg-card">
+              <span className="font-medium">{c.code}</span>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={c.status === "active" ? "default" : "secondary"}
+                  className="cursor-pointer"
+                  onClick={() => toggleStatus("product_codes", c.id, c.status)}
+                >
+                  {c.status}
+                </Badge>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditCode(c)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { setDeleteCodeId(c.id); setDeleteCodeOpen(true); }}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
-            ))}
-            {filteredCategories.length === 0 && <p className="text-sm text-muted-foreground">No categories found</p>}
-          </CardContent>
-        </Card>
-
-        {/* Product Codes Card */}
-        <Card>
-          <CardHeader><CardTitle className="text-lg">Product Codes ({filteredCodes.length})</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {filteredCodes.map((c) => (
-              <div key={c.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50">
-                <div>
-                  <span className="font-medium text-sm">{c.code}</span>
-                  <span className="text-xs text-muted-foreground ml-2">{c.product_categories?.name}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Badge
-                    variant={c.status === "active" ? "default" : "secondary"}
-                    className="cursor-pointer"
-                    onClick={() => toggleStatus("product_codes", c.id, c.status)}
-                  >
-                    {c.status}
-                  </Badge>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditCode(c)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { setDeleteCodeId(c.id); setDeleteCodeOpen(true); }}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {filteredCodes.length === 0 && <p className="text-sm text-muted-foreground">No product codes found</p>}
-          </CardContent>
-        </Card>
+            </div>
+          ))
+        )}
       </div>
-
-      {/* Edit Category Dialog */}
-      <Dialog open={editCatDialogOpen} onOpenChange={setEditCatDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Edit Category</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div><Label>Category Name</Label><Input value={editCatName} onChange={(e) => setEditCatName(e.target.value)} /></div>
-            <Button onClick={saveEditCategory} className="w-full bg-secondary hover:bg-secondary/90">Save</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Edit Product Code Dialog */}
       <Dialog open={editCodeDialogOpen} onOpenChange={setEditCodeDialogOpen}>
@@ -325,20 +364,6 @@ export default function Products() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Category Confirmation */}
-      <AlertDialog open={deleteCatOpen} onOpenChange={setDeleteCatOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Category</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete this category. Product codes under it may become orphaned. Are you sure?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Delete Product Code Confirmation */}
       <AlertDialog open={deleteCodeOpen} onOpenChange={setDeleteCodeOpen}>
