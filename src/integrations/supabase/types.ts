@@ -99,7 +99,7 @@ export type Database = {
       }
       production_entries: {
         Row: {
-          client_id: string
+          client_id: string | null
           created_at: string
           date: string
           id: string
@@ -113,7 +113,7 @@ export type Database = {
           worker_id: string
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
           created_at?: string
           date?: string
           id?: string
@@ -127,7 +127,7 @@ export type Database = {
           worker_id: string
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
           created_at?: string
           date?: string
           id?: string
@@ -196,6 +196,67 @@ export type Database = {
           username?: string
         }
         Relationships: []
+      }
+      stock_issues: {
+        Row: {
+          client_id: string
+          created_at: string
+          date: string
+          id: string
+          issued_by: string
+          notes: string | null
+          product_code_id: string
+          quantity: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          date?: string
+          id?: string
+          issued_by: string
+          notes?: string | null
+          product_code_id: string
+          quantity: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          issued_by?: string
+          notes?: string | null
+          product_code_id?: string
+          quantity?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_issues_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "company_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_issues_issued_by_profiles_fkey"
+            columns: ["issued_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "stock_issues_product_code_id_fkey"
+            columns: ["product_code_id"]
+            isOneToOne: false
+            referencedRelation: "product_codes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
