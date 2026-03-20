@@ -393,17 +393,6 @@ export default function ProductionLogs() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Client</Label>
-              <Select value={editClientId} onValueChange={setEditClientId}>
-                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rolls Count</Label>
