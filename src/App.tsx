@@ -9,6 +9,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import WorkerLayout from "./layouts/WorkerLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import ProductionLogs from "./pages/admin/ProductionLogs";
+import StockManagement from "./pages/admin/StockManagement";
 import Products from "./pages/admin/Products";
 import Clients from "./pages/admin/Clients";
 import UserManagement from "./pages/admin/UserManagement";
