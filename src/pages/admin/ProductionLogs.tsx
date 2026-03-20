@@ -24,9 +24,8 @@ interface LogEntry {
   unit: string;
   thickness_mm: number | null;
   product_code_id: string;
-  client_id: string;
+  client_id: string | null;
   product_codes: { code: string } | null;
-  company_clients: { name: string } | null;
   profiles: { name: string } | null;
 }
 
