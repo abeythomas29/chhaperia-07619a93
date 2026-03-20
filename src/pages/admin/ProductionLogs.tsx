@@ -78,19 +78,9 @@ export default function ProductionLogs() {
     // Try with thickness_mm first; fall back without it if column doesn't exist yet
     let { data, error } = await supabase
       .from("production_entries")
-      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, product_codes(code), company_clients(name), profiles:worker_id(name)")
+      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, product_codes(code), profiles:worker_id(name)")
       .order("date", { ascending: false })
       .limit(500);
-
-    if (error && error.message?.includes("thickness_mm")) {
-      const fallback = await supabase
-        .from("production_entries")
-        .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, product_code_id, client_id, product_codes(code), company_clients(name), profiles:worker_id(name)")
-        .order("date", { ascending: false })
-        .limit(500);
-      data = fallback.data as unknown as typeof data;
-      error = fallback.error;
-    }
 
     if (error) {
       toast({ title: "Failed to load production logs", description: error.message, variant: "destructive" });
