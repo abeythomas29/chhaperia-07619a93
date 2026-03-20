@@ -5,6 +5,7 @@ import {
   Users,
   Building2,
   LogOut,
+  Warehouse,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
