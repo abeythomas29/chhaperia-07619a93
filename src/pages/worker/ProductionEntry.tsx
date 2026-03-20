@@ -56,7 +56,7 @@ export default function ProductionEntry() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !form.product_code_id || !form.client_id || !form.rolls_count || !form.quantity_per_roll) return;
+    if (!user || !form.product_code_id || !form.rolls_count || !form.quantity_per_roll) return;
     setSubmitting(true);
 
     const insertPayload: Record<string, unknown> = {
