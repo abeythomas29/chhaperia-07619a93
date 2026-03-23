@@ -12,9 +12,11 @@ interface EntryDetail {
   date: string;
   rolls_count: number;
   quantity_per_roll: number;
+  thickness_mm: number | null;
   total_quantity: number | null;
   unit: string;
   product_codes: { code: string } | null;
+  company_clients?: { name: string } | null;
   profiles: { name: string } | null;
 }
 
@@ -93,14 +95,14 @@ export default function Dashboard() {
       if (type === "today") {
         const { data } = await supabase
           .from("production_entries")
-          .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, product_codes(code), profiles:worker_id(name)")
+          .select("id, date, rolls_count, quantity_per_roll, thickness_mm, total_quantity, unit, product_codes(code), company_clients(name), profiles:worker_id(name)")
           .eq("date", todayStr)
           .order("created_at", { ascending: false });
         setTodayEntries((data as unknown as EntryDetail[]) ?? []);
       } else if (type === "week") {
         const { data } = await supabase
           .from("production_entries")
-          .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, product_codes(code), profiles:worker_id(name)")
+          .select("id, date, rolls_count, quantity_per_roll, thickness_mm, total_quantity, unit, product_codes(code), company_clients(name), profiles:worker_id(name)")
           .gte("date", weekAgo)
           .order("date", { ascending: false });
         setWeekEntries((data as unknown as EntryDetail[]) ?? []);
@@ -121,40 +123,44 @@ export default function Dashboard() {
   ];
 
   const renderEntriesTable = (entries: EntryDetail[]) => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Date</TableHead>
-          <TableHead>Product Code</TableHead>
-          <TableHead>Worker</TableHead>
-          <TableHead className="text-right">Rolls</TableHead>
-          <TableHead className="text-right">Qty/Roll</TableHead>
-          <TableHead className="text-right">Total</TableHead>
-          <TableHead>Unit</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {entries.length === 0 ? (
+    <div className="overflow-x-auto">
+      <Table className="min-w-[700px]">
+        <TableHeader>
           <TableRow>
-            <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">No entries found</TableCell>
+            <TableHead>Date</TableHead>
+            <TableHead>Product Code</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Worker</TableHead>
+            <TableHead className="text-right">Rolls</TableHead>
+            <TableHead className="text-right">Qty/Roll</TableHead>
+            <TableHead className="text-right">Thickness</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+            <TableHead>Unit</TableHead>
           </TableRow>
-        ) : (
-          entries.map((e) => (
-            <TableRow key={e.id}>
-              <TableCell className="text-base font-medium whitespace-nowrap">
-                {(() => { const d = new Date(e.date); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`; })()}
-              </TableCell>
-              <TableCell className="font-medium">{e.product_codes?.code ?? "—"}</TableCell>
-              <TableCell>{e.profiles?.name ?? "—"}</TableCell>
-              <TableCell className="text-right">{e.rolls_count}</TableCell>
-              <TableCell className="text-right">{e.quantity_per_roll}</TableCell>
-              <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
-              <TableCell>{e.unit}</TableCell>
+        </TableHeader>
+        <TableBody>
+          {entries.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">No entries found</TableCell>
             </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+          ) : (
+            entries.map((e) => (
+              <TableRow key={e.id}>
+                <TableCell className="whitespace-nowrap">{e.date}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{e.product_codes?.code ?? "—"}</TableCell>
+                <TableCell className="whitespace-nowrap">{e.company_clients?.name ?? "—"}</TableCell>
+                <TableCell className="whitespace-nowrap">{e.profiles?.name ?? "—"}</TableCell>
+                <TableCell className="text-right">{e.rolls_count}</TableCell>
+                <TableCell className="text-right">{e.quantity_per_roll}</TableCell>
+                <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
+                <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
+                <TableCell>{e.unit}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 
   const renderModalContent = () => {

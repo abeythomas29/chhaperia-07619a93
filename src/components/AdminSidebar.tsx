@@ -45,24 +45,25 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <Link to="/admin" className="flex items-center gap-3">
-          <img src={logo} alt="Chhaperia Cables" className="h-9 w-auto" />
-          <div>
-            <p className="text-sm font-bold text-sidebar-foreground">Chhaperia Cables</p>
-            <p className="text-xs text-sidebar-foreground/60">Admin Panel</p>
+        <Link to="/admin" className="flex flex-col items-center justify-center gap-3 py-2">
+          <div className="bg-white p-2 rounded-lg w-full flex justify-center shadow-sm">
+            <img src={logo} alt="Chhaperia Cables" className="h-8 max-w-full object-contain" />
+          </div>
+          <div className="text-center w-full">
+            <p className="text-xs font-medium text-sidebar-foreground/60 uppercase tracking-wider">Admin Panel</p>
           </div>
         </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-base h-10">Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild size="lg" className="text-lg h-14">
                     <NavLink to={item.url} end={item.url === "/admin"} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
-                      <item.icon className="h-4 w-4" />
+                      <item.icon className="!h-6 !w-6 mr-2" />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -74,14 +75,14 @@ export function AdminSidebar() {
 
         {isSuperAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-base h-10 mt-4">Administration</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {superAdminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild size="lg" className="text-lg h-14">
                       <NavLink to={item.url} activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="!h-6 !w-6 mr-2" />
                         <span>{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
@@ -94,9 +95,9 @@ export function AdminSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-sidebar-foreground/60 truncate">{profileName ?? "Admin"}</span>
-          <Button variant="ghost" size="icon" onClick={signOut} className="text-sidebar-foreground/60 hover:text-sidebar-foreground">
-            <LogOut className="h-4 w-4" />
+          <span className="text-sm text-sidebar-foreground/80 truncate font-semibold">{profileName ?? "Admin"}</span>
+          <Button variant="ghost" size="icon" onClick={signOut} className="text-sidebar-foreground/60 hover:text-sidebar-foreground h-10 w-10">
+            <LogOut className="h-5 w-5" />
           </Button>
         </div>
       </SidebarFooter>

@@ -4,15 +4,22 @@ import { ClipboardList, History, LogOut, Loader2, Warehouse } from "lucide-react
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function WorkerLayout() {
   const { user, loading, signOut, profileName } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
+  };
+
+  const toggleLanguage = () => {
+    const nextLang = i18n.language === 'en' ? 'hi' : 'en';
+    i18n.changeLanguage(nextLang);
   };
 
   if (loading) {
@@ -26,9 +33,9 @@ export default function WorkerLayout() {
   if (!user) return <Navigate to="/login" replace />;
 
   const navItems = [
-    { to: "/worker", label: "New Entry", icon: ClipboardList, end: true },
-    { to: "/worker/history", label: "My History", icon: History, end: false },
-    { to: "/worker/stock", label: "Stock", icon: Warehouse, end: false },
+    { to: "/worker", label: t('new_production_entry'), icon: ClipboardList, end: true },
+    { to: "/worker/history", label: t('history'), icon: History, end: false },
+    { to: "/worker/stock", label: t('stock') || "Stock", icon: Warehouse, end: false },
   ];
 
   return (
@@ -39,11 +46,14 @@ export default function WorkerLayout() {
           <span className="font-bold text-sm">Chhaperia Cables</span>
         </Link>
         <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={toggleLanguage} className="text-secondary bg-transparent border-primary-foreground/20 hover:bg-primary-foreground/10 h-8 px-2 text-xs">
+            {i18n.language === 'en' ? 'A/अ' : 'अ/A'}
+          </Button>
           <div className="flex items-center gap-2 bg-primary-foreground/10 rounded-full px-3 py-1">
             <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-xs font-bold">
               {(profileName ?? "U").charAt(0).toUpperCase()}
             </div>
-            <span className="text-sm font-medium">{profileName ?? user?.email ?? "User"}</span>
+            <span className="text-sm font-medium hidden sm:inline">{profileName ?? user?.email ?? "User"}</span>
           </div>
           <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary/80">
             <LogOut className="h-4 w-4" />

@@ -4,6 +4,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import SplashScreen from "@/components/SplashScreen";
+import { useState, useEffect } from "react";
+import { autoSyncPendingEntries } from "./lib/offlineSync";
+import { usePushNotifications } from "./hooks/usePushNotifications";
+import "./lib/i18n"; // Import i18n configuration
 import Login from "./pages/Login";
 import AdminLayout from "./layouts/AdminLayout";
 import WorkerLayout from "./layouts/WorkerLayout";
@@ -20,34 +25,68 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const PushNotificationSetup = () => {
+  usePushNotifications();
+  return null;
+};
+
+const AppContent = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000);
+
+    // Offline sync listeners
+    window.addEventListener("online", autoSyncPendingEntries);
+    // Initial sync check
+    autoSyncPendingEntries();
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("online", autoSyncPendingEntries);
+    };
+  }, []);
+
+  if (showSplash) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <PushNotificationSetup />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="logs" element={<ProductionLogs />} />
+            <Route path="stock" element={<StockManagement />} />
+            <Route path="products" element={<Products />} />
+            <Route path="clients" element={<Clients />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="backup" element={<BackupRestore />} />
+          </Route>
+          <Route path="/worker" element={<WorkerLayout />}>
+            <Route index element={<ProductionEntry />} />
+            <Route path="history" element={<ProductionHistory />} />
+            <Route path="stock" element={<StockManagement />} />
+          </Route>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="logs" element={<ProductionLogs />} />
-              <Route path="stock" element={<StockManagement />} />
-              <Route path="products" element={<Products />} />
-              <Route path="clients" element={<Clients />} />
-              <Route path="users" element={<UserManagement />} />
-              <Route path="backup" element={<BackupRestore />} />
-            </Route>
-            <Route path="/worker" element={<WorkerLayout />}>
-              <Route index element={<ProductionEntry />} />
-              <Route path="history" element={<ProductionHistory />} />
-              <Route path="stock" element={<StockManagement />} />
-            </Route>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
+      <AppContent />
     </TooltipProvider>
   </QueryClientProvider>
 );
