@@ -160,8 +160,8 @@ export default function ProductionEntry() {
                 </DialogContent>
               </Dialog>
             </div>
-            <Select value={form.product_code_id ? productCodes.find(p => p.id === form.product_code_id)?.category_id ?? "" : ""} onValueChange={() => {}}>
-              <SelectTrigger><SelectValue placeholder="Category (auto from product code)" /></SelectTrigger>
+            <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v, product_code_id: "" })}>
+              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
               <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
