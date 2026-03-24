@@ -15,6 +15,7 @@ import Clients from "./pages/admin/Clients";
 import UserManagement from "./pages/admin/UserManagement";
 import ProductionEntry from "./pages/worker/ProductionEntry";
 import ProductionHistory from "./pages/worker/ProductionHistory";
+import MyIssues from "./pages/worker/MyIssues";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
               <Route index element={<ProductionEntry />} />
               <Route path="history" element={<ProductionHistory />} />
               <Route path="stock" element={<StockManagement />} />
+              <Route path="issues" element={<MyIssues />} />
             </Route>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
