@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function WorkerLayout() {
-  const { user, loading, signOut, profileName } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isWorker } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
