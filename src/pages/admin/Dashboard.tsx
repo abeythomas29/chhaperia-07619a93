@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ClipboardList, TrendingUp, Download, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subDays } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "@/hooks/use-toast";
 
 interface EntryDetail {
   id: string;
@@ -27,6 +29,7 @@ export default function Dashboard() {
   const [modalLoading, setModalLoading] = useState(false);
   const [todayEntries, setTodayEntries] = useState<EntryDetail[]>([]);
   const [weekEntries, setWeekEntries] = useState<EntryDetail[]>([]);
+  const [backingUp, setBackingUp] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -110,6 +113,56 @@ export default function Dashboard() {
     }
   };
 
+  const handleBackup = async () => {
+    setBackingUp(true);
+    try {
+      const [
+        { data: categories },
+        { data: productCodes },
+        { data: clients },
+        { data: profiles },
+        { data: roles },
+        { data: productionEntries },
+        { data: stockIssues },
+      ] = await Promise.all([
+        supabase.from("product_categories").select("*").order("name"),
+        supabase.from("product_codes").select("*").order("code"),
+        supabase.from("company_clients").select("*").order("name"),
+        supabase.from("profiles").select("*").order("name"),
+        supabase.from("user_roles").select("*"),
+        supabase.from("production_entries").select("*").order("date", { ascending: false }).limit(1000),
+        supabase.from("stock_issues").select("*").order("date", { ascending: false }).limit(1000),
+      ]);
+
+      const backup = {
+        exported_at: new Date().toISOString(),
+        product_categories: categories ?? [],
+        product_codes: productCodes ?? [],
+        company_clients: clients ?? [],
+        profiles: profiles ?? [],
+        user_roles: roles ?? [],
+        production_entries: productionEntries ?? [],
+        stock_issues: stockIssues ?? [],
+      };
+
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `chhaperia-backup-${format(new Date(), "yyyy-MM-dd-HHmm")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Backup downloaded successfully" });
+    } catch (err: any) {
+      toast({ title: "Backup failed", description: err.message, variant: "destructive" });
+    } finally {
+      setBackingUp(false);
+    }
+  };
+
   const modalTitles: Record<string, string> = {
     today: "Today's Production Entries",
     week: "This Week's Production Entries",
@@ -166,7 +219,13 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <Button onClick={handleBackup} disabled={backingUp} variant="outline" className="gap-2">
+          {backingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Backup Data
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {statCards.map((s) => (
