@@ -27,7 +27,6 @@ export default function ProductionEntry() {
     quantity_per_roll: "",
     unit: "meters",
     thickness_mm: "",
-    category_id: "",
   });
 
   const [newProductCode, setNewProductCode] = useState("");
@@ -79,7 +78,7 @@ export default function ProductionEntry() {
     } else {
       setSubmitted(true);
       setTimeout(() => {
-        setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", category_id: "" });
+        setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "" });
         setSubmitted(false);
       }, 2000);
     }
@@ -160,8 +159,8 @@ export default function ProductionEntry() {
                 </DialogContent>
               </Dialog>
             </div>
-            <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v, product_code_id: "" })}>
-              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+            <Select value={form.product_code_id ? productCodes.find(p => p.id === form.product_code_id)?.category_id ?? "" : ""} onValueChange={() => {}}>
+              <SelectTrigger><SelectValue placeholder="Category (auto from product code)" /></SelectTrigger>
               <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -190,8 +189,8 @@ export default function ProductionEntry() {
               </Dialog>
             </div>
             <Select value={form.product_code_id} onValueChange={(v) => setForm({ ...form, product_code_id: v })}>
-              <SelectTrigger><SelectValue placeholder={form.category_id ? "Select product code" : "Select a category first"} /></SelectTrigger>
-              <SelectContent>{productCodes.filter(p => !form.category_id || p.category_id === form.category_id).map((p) => <SelectItem key={p.id} value={p.id}>{p.code}</SelectItem>)}</SelectContent>
+              <SelectTrigger><SelectValue placeholder="Select product code" /></SelectTrigger>
+              <SelectContent>{productCodes.map((p) => <SelectItem key={p.id} value={p.id}>{p.code}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 
