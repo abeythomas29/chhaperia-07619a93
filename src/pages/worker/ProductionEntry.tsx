@@ -41,6 +41,7 @@ export default function ProductionEntry() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
 
   const fetchData = async () => {
     if (!navigator.onLine) {
@@ -203,8 +204,8 @@ export default function ProductionEntry() {
                 </DialogContent>
               </Dialog>
             </div>
-            <Select value={form.product_code_id ? productCodes.find(p => p.id === form.product_code_id)?.category_id ?? "" : ""} onValueChange={() => { }}>
-              <SelectTrigger className="h-14 text-lg"><SelectValue placeholder={t('category_auto')} /></SelectTrigger>
+            <Select value={selectedCategoryId} onValueChange={(v) => { setSelectedCategoryId(v); setForm(f => ({ ...f, product_code_id: "" })); }}>
+              <SelectTrigger className="h-14 text-lg"><SelectValue placeholder={t('select_category') || 'Select Category'} /></SelectTrigger>
               <SelectContent>{categories.map((c) => <SelectItem className="text-lg py-3" key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -232,9 +233,19 @@ export default function ProductionEntry() {
                 </DialogContent>
               </Dialog>
             </div>
-            <Select value={form.product_code_id} onValueChange={(v) => setForm({ ...form, product_code_id: v })}>
+            <Select value={form.product_code_id} onValueChange={(v) => {
+              setForm({ ...form, product_code_id: v });
+              const codeCat = productCodes.find(p => p.id === v)?.category_id;
+              if (codeCat && codeCat !== selectedCategoryId) {
+                setSelectedCategoryId(codeCat);
+              }
+            }}>
               <SelectTrigger className="h-14 text-lg"><SelectValue placeholder={t('select_product_code')} /></SelectTrigger>
-              <SelectContent>{productCodes.map((p) => <SelectItem className="text-lg py-3" key={p.id} value={p.id}>{p.code}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {(selectedCategoryId ? productCodes.filter(p => p.category_id === selectedCategoryId) : productCodes).map((p) => (
+                  <SelectItem className="text-lg py-3" key={p.id} value={p.id}>{p.code}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
 
