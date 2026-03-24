@@ -1,0 +1,1 @@
+DROP POLICY "Users can insert own worker role" ON public.user_roles;
