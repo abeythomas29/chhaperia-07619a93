@@ -6,6 +6,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -13,34 +24,47 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing auth" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    // Verify the caller is a super_admin
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    const token = authHeader.replace("Bearer ", "");
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.email) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const userEmail = (payload.email as string).toLowerCase();
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
+
+    // Look up user by email in profiles
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("user_id")
+      .eq("username", userEmail)
+      .single();
+
+    if (!profile) {
+      return new Response(JSON.stringify({ error: "User not found" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check super_admin role
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", profile.user_id)
       .single();
 
     if (!roleData || roleData.role !== "super_admin") {
@@ -60,7 +84,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Restore order matters due to foreign keys
     const restoreOrder = [
       "product_categories",
       "company_clients",
@@ -83,15 +106,13 @@ Deno.serve(async (req) => {
       const errors: string[] = [];
       let inserted = 0;
 
-      // Upsert in batches of 50
       for (let i = 0; i < rows.length; i += 50) {
         const batch = rows.slice(i, i + 50);
 
-        // Remove generated columns
         const cleanBatch = batch.map((row: Record<string, unknown>) => {
           const clean = { ...row };
           if (table === "production_entries") {
-            delete clean.total_quantity; // generated column
+            delete clean.total_quantity;
           }
           return clean;
         });
