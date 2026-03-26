@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, PackagePlus, ArrowDownCircle, ArrowUpCircle, Package } from "lucide-react";
+import { Search, PackagePlus, ArrowDownCircle, ArrowUpCircle, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -53,6 +53,9 @@ export default function StockManagement() {
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [inPage, setInPage] = useState(1);
+  const [outPage, setOutPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   // Issue dialog
   const [issueOpen, setIssueOpen] = useState(false);
@@ -284,96 +287,138 @@ export default function StockManagement() {
       {/* Inward & Outward Tables */}
       <div className="space-y-6">
         {/* Inward Supply */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <ArrowDownCircle className="h-5 w-5 text-green-600" />
-            Inward Supply (Production)
-          </h2>
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Product Code</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Worker</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
-                  </TableRow>
-                ) : filteredLedger.filter(e => e.type === "IN").length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
-                  </TableRow>
-                ) : (
-                  filteredLedger.filter(e => e.type === "IN").map((e) => (
-                    <TableRow key={`IN-${e.id}`}>
-                      <TableCell className="text-base font-medium whitespace-nowrap">
-                        {format(new Date(e.date), "dd/MM/yy")}
-                      </TableCell>
-                      <TableCell className="font-medium">{e.product_code}</TableCell>
-                      <TableCell className="text-right font-semibold text-green-600">{Number(e.quantity).toLocaleString()}</TableCell>
-                      <TableCell>{e.unit}</TableCell>
-                      <TableCell>{e.person ?? "—"}</TableCell>
+        {(() => {
+          const inData = filteredLedger.filter(e => e.type === "IN");
+          const inTotalPages = Math.max(1, Math.ceil(inData.length / PAGE_SIZE));
+          const inPaged = inData.slice((inPage - 1) * PAGE_SIZE, inPage * PAGE_SIZE);
+          return (
+            <div>
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <ArrowDownCircle className="h-5 w-5 text-green-600" />
+                Inward Supply (Production)
+                <span className="text-sm font-normal text-muted-foreground">({inData.length} entries)</span>
+              </h2>
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Product Code</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Worker</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                      </TableRow>
+                    ) : inPaged.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
+                      </TableRow>
+                    ) : (
+                      inPaged.map((e) => (
+                        <TableRow key={`IN-${e.id}`}>
+                          <TableCell className="text-base font-medium whitespace-nowrap">
+                            {format(new Date(e.date), "dd/MM/yy")}
+                          </TableCell>
+                          <TableCell className="font-medium">{e.product_code}</TableCell>
+                          <TableCell className="text-right font-semibold text-green-600">{Number(e.quantity).toLocaleString()}</TableCell>
+                          <TableCell>{e.unit}</TableCell>
+                          <TableCell>{e.person ?? "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {inTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-sm text-muted-foreground">Page {inPage} of {inTotalPages}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={inPage <= 1} onClick={() => setInPage(p => p - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={inPage >= inTotalPages} onClick={() => setInPage(p => p + 1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Outward Supply */}
-        <div>
-          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <ArrowUpCircle className="h-5 w-5 text-red-500" />
-            Outward Supply (Issued to Clients)
-          </h2>
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Product Code</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead>Unit</TableHead>
-                  <TableHead>Issued By</TableHead>
-                  <TableHead>Notes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
-                  </TableRow>
-                ) : filteredLedger.filter(e => e.type === "OUT").length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No outward entries found</TableCell>
-                  </TableRow>
-                ) : (
-                  filteredLedger.filter(e => e.type === "OUT").map((e) => (
-                    <TableRow key={`OUT-${e.id}`}>
-                      <TableCell className="text-base font-medium whitespace-nowrap">
-                        {format(new Date(e.date), "dd/MM/yy")}
-                      </TableCell>
-                      <TableCell className="font-medium">{e.product_code}</TableCell>
-                      <TableCell>{e.client_name ?? "—"}</TableCell>
-                      <TableCell className="text-right font-semibold text-red-500">{Number(e.quantity).toLocaleString()}</TableCell>
-                      <TableCell>{e.unit}</TableCell>
-                      <TableCell>{e.person ?? "—"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{e.notes ?? "—"}</TableCell>
+        {(() => {
+          const outData = filteredLedger.filter(e => e.type === "OUT");
+          const outTotalPages = Math.max(1, Math.ceil(outData.length / PAGE_SIZE));
+          const outPaged = outData.slice((outPage - 1) * PAGE_SIZE, outPage * PAGE_SIZE);
+          return (
+            <div>
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                Outward Supply (Issued to Clients)
+                <span className="text-sm font-normal text-muted-foreground">({outData.length} entries)</span>
+              </h2>
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Product Code</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Issued By</TableHead>
+                      <TableHead>Notes</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                      </TableRow>
+                    ) : outPaged.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No outward entries found</TableCell>
+                      </TableRow>
+                    ) : (
+                      outPaged.map((e) => (
+                        <TableRow key={`OUT-${e.id}`}>
+                          <TableCell className="text-base font-medium whitespace-nowrap">
+                            {format(new Date(e.date), "dd/MM/yy")}
+                          </TableCell>
+                          <TableCell className="font-medium">{e.product_code}</TableCell>
+                          <TableCell>{e.client_name ?? "—"}</TableCell>
+                          <TableCell className="text-right font-semibold text-red-500">{Number(e.quantity).toLocaleString()}</TableCell>
+                          <TableCell>{e.unit}</TableCell>
+                          <TableCell>{e.person ?? "—"}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{e.notes ?? "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {outTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-sm text-muted-foreground">Page {outPage} of {outTotalPages}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={outPage <= 1} onClick={() => setOutPage(p => p - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={outPage >= outTotalPages} onClick={() => setOutPage(p => p + 1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Issue Stock Dialog */}
