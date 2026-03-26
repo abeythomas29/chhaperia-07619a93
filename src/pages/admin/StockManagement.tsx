@@ -281,55 +281,98 @@ export default function StockManagement() {
         )}
       </div>
 
-      {/* Ledger */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Transaction Ledger</h2>
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Product Code</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>By</TableHead>
-                <TableHead>Notes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+      {/* Inward & Outward Tables */}
+      <div className="space-y-6">
+        {/* Inward Supply */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <ArrowDownCircle className="h-5 w-5 text-green-600" />
+            Inward Supply (Production)
+          </h2>
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Product Code</TableHead>
+                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Worker</TableHead>
                 </TableRow>
-              ) : filteredLedger.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No transactions found</TableCell>
-                </TableRow>
-              ) : (
-                filteredLedger.map((e) => (
-                  <TableRow key={`${e.type}-${e.id}`}>
-                    <TableCell className="text-base font-medium whitespace-nowrap">
-                      {format(new Date(e.date), "dd/MM/yy")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={e.type === "IN" ? "default" : "destructive"} className="gap-1">
-                        {e.type === "IN" ? <ArrowDownCircle className="h-3 w-3" /> : <ArrowUpCircle className="h-3 w-3" />}
-                        {e.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{e.product_code}</TableCell>
-                    <TableCell>{e.client_name ?? "—"}</TableCell>
-                    <TableCell className="text-right font-semibold">{Number(e.quantity).toLocaleString()}</TableCell>
-                    <TableCell>{e.unit}</TableCell>
-                    <TableCell>{e.person ?? "—"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{e.notes ?? "—"}</TableCell>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : filteredLedger.filter(e => e.type === "IN").length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
+                  </TableRow>
+                ) : (
+                  filteredLedger.filter(e => e.type === "IN").map((e) => (
+                    <TableRow key={`IN-${e.id}`}>
+                      <TableCell className="text-base font-medium whitespace-nowrap">
+                        {format(new Date(e.date), "dd/MM/yy")}
+                      </TableCell>
+                      <TableCell className="font-medium">{e.product_code}</TableCell>
+                      <TableCell className="text-right font-semibold text-green-600">{Number(e.quantity).toLocaleString()}</TableCell>
+                      <TableCell>{e.unit}</TableCell>
+                      <TableCell>{e.person ?? "—"}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* Outward Supply */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <ArrowUpCircle className="h-5 w-5 text-red-500" />
+            Outward Supply (Issued to Clients)
+          </h2>
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Product Code</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Issued By</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                  </TableRow>
+                ) : filteredLedger.filter(e => e.type === "OUT").length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No outward entries found</TableCell>
+                  </TableRow>
+                ) : (
+                  filteredLedger.filter(e => e.type === "OUT").map((e) => (
+                    <TableRow key={`OUT-${e.id}`}>
+                      <TableCell className="text-base font-medium whitespace-nowrap">
+                        {format(new Date(e.date), "dd/MM/yy")}
+                      </TableCell>
+                      <TableCell className="font-medium">{e.product_code}</TableCell>
+                      <TableCell>{e.client_name ?? "—"}</TableCell>
+                      <TableCell className="text-right font-semibold text-red-500">{Number(e.quantity).toLocaleString()}</TableCell>
+                      <TableCell>{e.unit}</TableCell>
+                      <TableCell>{e.person ?? "—"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{e.notes ?? "—"}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
 
