@@ -104,7 +104,7 @@ export default function Login() {
     if (error) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Account created!", description: "You are now signed in as a Production Manager." });
+      toast({ title: "Account created!", description: "Please wait for an administrator to assign your role." });
     }
     setSubmitting(false);
   };
@@ -165,7 +165,7 @@ export default function Login() {
                   Create Account
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  You'll be registered as a Production Manager by default.
+                  Your account will need admin approval before you can access the system.
                 </p>
                 <p className="text-xs text-muted-foreground text-center mt-2">
                   By creating an account, you agree to our{" "}
