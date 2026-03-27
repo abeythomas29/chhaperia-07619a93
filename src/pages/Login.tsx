@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.png";
@@ -19,6 +21,7 @@ export default function Login() {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const { toast } = useToast();
 
   if (loading) {
@@ -79,6 +82,7 @@ export default function Login() {
   };
 
   return (
+    <>
     <div className="flex min-h-screen items-center justify-center bg-muted p-4">
       <Card className="w-full max-w-md shadow-xl border-0">
         <CardHeader className="text-center pb-2">
@@ -135,11 +139,50 @@ export default function Login() {
                 <p className="text-xs text-muted-foreground text-center">
                   You'll be registered as a Production Manager by default.
                 </p>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  By creating an account, you agree to our{" "}
+                  <button
+                    type="button"
+                    className="underline text-primary hover:text-primary/80 transition-colors"
+                    onClick={() => setShowPrivacy(true)}
+                  >
+                    Privacy Policy
+                  </button>.
+                </p>
               </form>
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
     </div>
+
+    <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Privacy Policy</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh]">
+          <div className="space-y-4 text-sm text-muted-foreground pr-4">
+            <p><strong className="text-foreground">Effective Date:</strong> March 27, 2026</p>
+            <p>Chhaperia Cables ("we", "our", "us") operates the Production Tracking System. This policy describes how we collect, use, and protect your information.</p>
+            <h3 className="font-semibold text-foreground">1. Information We Collect</h3>
+            <p>We collect your name, employee ID, email address, and production data you enter into the system. This information is necessary to operate the tracking system and manage production workflows.</p>
+            <h3 className="font-semibold text-foreground">2. How We Use Your Information</h3>
+            <p>Your information is used to authenticate your account, track production entries, manage stock and client records, and generate reports for internal business use.</p>
+            <h3 className="font-semibold text-foreground">3. Data Storage & Security</h3>
+            <p>Your data is stored securely on cloud infrastructure with encryption at rest and in transit. Access is restricted based on your assigned role (worker or admin).</p>
+            <h3 className="font-semibold text-foreground">4. Data Sharing</h3>
+            <p>We do not sell or share your personal information with third parties. Data is only accessible to authorized administrators within the organization.</p>
+            <h3 className="font-semibold text-foreground">5. Your Rights</h3>
+            <p>You may request access to, correction of, or deletion of your personal data by contacting your administrator.</p>
+            <h3 className="font-semibold text-foreground">6. Changes to This Policy</h3>
+            <p>We may update this policy from time to time. Continued use of the system constitutes acceptance of the updated policy.</p>
+            <h3 className="font-semibold text-foreground">7. Contact</h3>
+            <p>For questions about this policy, contact your system administrator.</p>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
