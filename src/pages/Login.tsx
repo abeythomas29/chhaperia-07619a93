@@ -154,5 +154,34 @@ export default function Login() {
         </CardContent>
       </Card>
     </div>
+
+    <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Privacy Policy</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh]">
+          <div className="space-y-4 text-sm text-muted-foreground pr-4">
+            <p><strong className="text-foreground">Effective Date:</strong> March 27, 2026</p>
+            <p>Chhaperia Cables ("we", "our", "us") operates the Production Tracking System. This policy describes how we collect, use, and protect your information.</p>
+            <h3 className="font-semibold text-foreground">1. Information We Collect</h3>
+            <p>We collect your name, employee ID, email address, and production data you enter into the system. This information is necessary to operate the tracking system and manage production workflows.</p>
+            <h3 className="font-semibold text-foreground">2. How We Use Your Information</h3>
+            <p>Your information is used to authenticate your account, track production entries, manage stock and client records, and generate reports for internal business use.</p>
+            <h3 className="font-semibold text-foreground">3. Data Storage & Security</h3>
+            <p>Your data is stored securely on cloud infrastructure with encryption at rest and in transit. Access is restricted based on your assigned role (worker or admin).</p>
+            <h3 className="font-semibold text-foreground">4. Data Sharing</h3>
+            <p>We do not sell or share your personal information with third parties. Data is only accessible to authorized administrators within the organization.</p>
+            <h3 className="font-semibold text-foreground">5. Your Rights</h3>
+            <p>You may request access to, correction of, or deletion of your personal data by contacting your administrator.</p>
+            <h3 className="font-semibold text-foreground">6. Changes to This Policy</h3>
+            <p>We may update this policy from time to time. Continued use of the system constitutes acceptance of the updated policy.</p>
+            <h3 className="font-semibold text-foreground">7. Contact</h3>
+            <p>For questions about this policy, contact your system administrator.</p>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  </div>
   );
 }
