@@ -72,7 +72,14 @@ export default function StockManagement() {
   const [issueUnit, setIssueUnit] = useState("meters");
   const [issueNotes, setIssueNotes] = useState("");
   const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [issueThickness, setIssueThickness] = useState("");
   const [issuing, setIssuing] = useState(false);
+
+  // Edit thickness dialog
+  const [editThicknessOpen, setEditThicknessOpen] = useState(false);
+  const [editEntryId, setEditEntryId] = useState("");
+  const [editThicknessValue, setEditThicknessValue] = useState("");
+  const [editingThickness, setEditingThickness] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -87,7 +94,7 @@ export default function StockManagement() {
     // Fetch stock issues (OUT)
     const { data: issueData } = await supabase
       .from("stock_issues")
-      .select("id, date, product_code_id, quantity, unit, notes, client_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
+      .select("id, date, product_code_id, quantity, unit, notes, thickness_mm, client_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
       .order("date", { ascending: false })
       .limit(1000);
 
@@ -174,7 +181,7 @@ export default function StockManagement() {
         date: i.date,
         type: "OUT",
         product_code: i.product_codes?.code ?? "—",
-        thickness_mm: null,
+        thickness_mm: i.thickness_mm != null ? Number(i.thickness_mm) : null,
         client_name: i.company_clients?.name ?? "—",
         quantity: Number(i.quantity),
         unit: i.unit,
@@ -207,6 +214,7 @@ export default function StockManagement() {
       client_id: issueClientId,
       quantity: Number(issueQuantity),
       unit: issueUnit,
+      thickness_mm: issueThickness ? Number(issueThickness) : null,
       notes: issueNotes || null,
       issued_by: user.id,
       date: issueDate,
@@ -228,6 +236,7 @@ export default function StockManagement() {
     setIssueClientId("");
     setIssueQuantity("");
     setIssueUnit("meters");
+    setIssueThickness("");
     setIssueNotes("");
     setIssueDate(format(new Date(), "yyyy-MM-dd"));
   };
