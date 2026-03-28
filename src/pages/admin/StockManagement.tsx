@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, PackagePlus, ArrowDownCircle, ArrowUpCircle, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, PackagePlus, ArrowDownCircle, ArrowUpCircle, Package, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -351,22 +351,23 @@ export default function StockManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
+                     <TableHead>Date</TableHead>
                       <TableHead>Product Code</TableHead>
                       <TableHead className="text-right">Thickness (mm)</TableHead>
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>Worker</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                       </TableRow>
                     ) : inPaged.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
                       </TableRow>
                     ) : (
                       inPaged.map((e) => (
@@ -375,10 +376,17 @@ export default function StockManagement() {
                             {format(new Date(e.date), "dd/MM/yy")}
                           </TableCell>
                           <TableCell className="font-medium">{e.product_code}</TableCell>
-                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : "—"}</TableCell>
+                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : <span className="text-muted-foreground italic">Not set</span>}</TableCell>
                           <TableCell className="text-right font-semibold text-green-600">{Number(e.quantity).toLocaleString()}</TableCell>
                           <TableCell>{e.unit}</TableCell>
                           <TableCell>{e.person ?? "—"}</TableCell>
+                          <TableCell>
+                            {e.thickness_mm == null && (
+                              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => { setEditEntryId(e.id); setEditThicknessValue(""); setEditThicknessOpen(true); }}>
+                                <Pencil className="h-3 w-3 mr-1" /> Add
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -418,8 +426,9 @@ export default function StockManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
+                     <TableHead>Date</TableHead>
                       <TableHead>Product Code</TableHead>
+                      <TableHead className="text-right">Thickness (mm)</TableHead>
                       <TableHead>Client</TableHead>
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead>Unit</TableHead>
@@ -430,11 +439,11 @@ export default function StockManagement() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                       </TableRow>
                     ) : outPaged.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No outward entries found</TableCell>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No outward entries found</TableCell>
                       </TableRow>
                     ) : (
                       outPaged.map((e) => (
@@ -443,6 +452,7 @@ export default function StockManagement() {
                             {format(new Date(e.date), "dd/MM/yy")}
                           </TableCell>
                           <TableCell className="font-medium">{e.product_code}</TableCell>
+                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : "—"}</TableCell>
                           <TableCell>{e.client_name ?? "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-red-500">{Number(e.quantity).toLocaleString()}</TableCell>
                           <TableCell>{e.unit}</TableCell>
