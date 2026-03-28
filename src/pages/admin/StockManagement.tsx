@@ -336,6 +336,7 @@ export default function StockManagement() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Product Code</TableHead>
+                      <TableHead className="text-right">Thickness (mm)</TableHead>
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>Worker</TableHead>
@@ -344,11 +345,11 @@ export default function StockManagement() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                       </TableRow>
                     ) : inPaged.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
                       </TableRow>
                     ) : (
                       inPaged.map((e) => (
@@ -357,6 +358,7 @@ export default function StockManagement() {
                             {format(new Date(e.date), "dd/MM/yy")}
                           </TableCell>
                           <TableCell className="font-medium">{e.product_code}</TableCell>
+                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-green-600">{Number(e.quantity).toLocaleString()}</TableCell>
                           <TableCell>{e.unit}</TableCell>
                           <TableCell>{e.person ?? "—"}</TableCell>
