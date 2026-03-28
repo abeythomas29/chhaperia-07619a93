@@ -274,12 +274,15 @@ export default function StockManagement() {
           <p className="text-muted-foreground col-span-full text-center py-8">No stock data found</p>
         ) : (
           filteredSummaries.map((s) => (
-            <Card key={s.product_code_id} className="hover:shadow-md transition-shadow">
+            <Card key={`${s.product_code_id}-${s.thickness_mm}`} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Package className="h-4 w-4 text-muted-foreground" />
-                  {s.code}
-                </CardTitle>
+                   {s.code}
+                   {s.thickness_mm != null && (
+                     <Badge variant="secondary" className="text-xs ml-1">{s.thickness_mm} mm</Badge>
+                   )}
+                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-2 text-center mb-3">
@@ -298,7 +301,7 @@ export default function StockManagement() {
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground text-center mb-3">Unit: {s.unit}</p>
+                <p className="text-xs text-muted-foreground text-center mb-3">Unit: {s.unit}{s.thickness_mm != null ? ` • Thickness: ${s.thickness_mm} mm` : ""}</p>
                 <Button
                   variant="outline"
                   size="sm"
