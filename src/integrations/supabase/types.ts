@@ -207,6 +207,7 @@ export type Database = {
           notes: string | null
           product_code_id: string
           quantity: number
+          thickness_mm: number | null
           unit: string
           updated_at: string
         }
@@ -219,6 +220,7 @@ export type Database = {
           notes?: string | null
           product_code_id: string
           quantity: number
+          thickness_mm?: number | null
           unit?: string
           updated_at?: string
         }
@@ -231,6 +233,7 @@ export type Database = {
           notes?: string | null
           product_code_id?: string
           quantity?: number
+          thickness_mm?: number | null
           unit?: string
           updated_at?: string
         }

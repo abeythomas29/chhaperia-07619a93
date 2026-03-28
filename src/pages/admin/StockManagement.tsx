@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, PackagePlus, ArrowDownCircle, ArrowUpCircle, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, PackagePlus, ArrowDownCircle, ArrowUpCircle, Package, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -72,7 +72,14 @@ export default function StockManagement() {
   const [issueUnit, setIssueUnit] = useState("meters");
   const [issueNotes, setIssueNotes] = useState("");
   const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [issueThickness, setIssueThickness] = useState("");
   const [issuing, setIssuing] = useState(false);
+
+  // Edit thickness dialog
+  const [editThicknessOpen, setEditThicknessOpen] = useState(false);
+  const [editEntryId, setEditEntryId] = useState("");
+  const [editThicknessValue, setEditThicknessValue] = useState("");
+  const [editingThickness, setEditingThickness] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -87,7 +94,7 @@ export default function StockManagement() {
     // Fetch stock issues (OUT)
     const { data: issueData } = await supabase
       .from("stock_issues")
-      .select("id, date, product_code_id, quantity, unit, notes, client_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
+      .select("id, date, product_code_id, quantity, unit, notes, thickness_mm, client_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
       .order("date", { ascending: false })
       .limit(1000);
 
@@ -174,7 +181,7 @@ export default function StockManagement() {
         date: i.date,
         type: "OUT",
         product_code: i.product_codes?.code ?? "—",
-        thickness_mm: null,
+        thickness_mm: i.thickness_mm != null ? Number(i.thickness_mm) : null,
         client_name: i.company_clients?.name ?? "—",
         quantity: Number(i.quantity),
         unit: i.unit,
@@ -207,6 +214,7 @@ export default function StockManagement() {
       client_id: issueClientId,
       quantity: Number(issueQuantity),
       unit: issueUnit,
+      thickness_mm: issueThickness ? Number(issueThickness) : null,
       notes: issueNotes || null,
       issued_by: user.id,
       date: issueDate,
@@ -228,6 +236,7 @@ export default function StockManagement() {
     setIssueClientId("");
     setIssueQuantity("");
     setIssueUnit("meters");
+    setIssueThickness("");
     setIssueNotes("");
     setIssueDate(format(new Date(), "yyyy-MM-dd"));
   };
@@ -342,22 +351,23 @@ export default function StockManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
+                     <TableHead>Date</TableHead>
                       <TableHead>Product Code</TableHead>
                       <TableHead className="text-right">Thickness (mm)</TableHead>
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>Worker</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                       </TableRow>
                     ) : inPaged.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
                       </TableRow>
                     ) : (
                       inPaged.map((e) => (
@@ -366,10 +376,17 @@ export default function StockManagement() {
                             {format(new Date(e.date), "dd/MM/yy")}
                           </TableCell>
                           <TableCell className="font-medium">{e.product_code}</TableCell>
-                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : "—"}</TableCell>
+                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : <span className="text-muted-foreground italic">Not set</span>}</TableCell>
                           <TableCell className="text-right font-semibold text-green-600">{Number(e.quantity).toLocaleString()}</TableCell>
                           <TableCell>{e.unit}</TableCell>
                           <TableCell>{e.person ?? "—"}</TableCell>
+                          <TableCell>
+                            {e.thickness_mm == null && (
+                              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => { setEditEntryId(e.id); setEditThicknessValue(""); setEditThicknessOpen(true); }}>
+                                <Pencil className="h-3 w-3 mr-1" /> Add
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -409,8 +426,9 @@ export default function StockManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
+                     <TableHead>Date</TableHead>
                       <TableHead>Product Code</TableHead>
+                      <TableHead className="text-right">Thickness (mm)</TableHead>
                       <TableHead>Client</TableHead>
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead>Unit</TableHead>
@@ -421,11 +439,11 @@ export default function StockManagement() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
                       </TableRow>
                     ) : outPaged.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No outward entries found</TableCell>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No outward entries found</TableCell>
                       </TableRow>
                     ) : (
                       outPaged.map((e) => (
@@ -434,6 +452,7 @@ export default function StockManagement() {
                             {format(new Date(e.date), "dd/MM/yy")}
                           </TableCell>
                           <TableCell className="font-medium">{e.product_code}</TableCell>
+                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : "—"}</TableCell>
                           <TableCell>{e.client_name ?? "—"}</TableCell>
                           <TableCell className="text-right font-semibold text-red-500">{Number(e.quantity).toLocaleString()}</TableCell>
                           <TableCell>{e.unit}</TableCell>
@@ -513,10 +532,14 @@ export default function StockManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Quantity</Label>
                 <Input type="number" min="0" step="0.01" value={issueQuantity} onChange={(e) => setIssueQuantity(e.target.value)} placeholder="0" />
+              </div>
+              <div className="space-y-2">
+                <Label>Thickness (mm)</Label>
+                <Input type="number" min="0" step="0.01" value={issueThickness} onChange={(e) => setIssueThickness(e.target.value)} placeholder="Optional" />
               </div>
               <div className="space-y-2">
                 <Label>Unit</Label>
@@ -538,6 +561,39 @@ export default function StockManagement() {
             <Button variant="outline" onClick={() => { setIssueOpen(false); resetIssueForm(); }}>Cancel</Button>
             <Button onClick={handleIssue} disabled={issuing} className="bg-secondary hover:bg-secondary/90">
               {issuing ? "Issuing..." : "Issue Stock"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Thickness Dialog */}
+      <Dialog open={editThicknessOpen} onOpenChange={setEditThicknessOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Thickness</DialogTitle>
+            <DialogDescription>Set the thickness for this production entry.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Thickness (mm)</Label>
+              <Input type="number" min="0" step="0.01" value={editThicknessValue} onChange={(e) => setEditThicknessValue(e.target.value)} placeholder="e.g. 0.5" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditThicknessOpen(false)}>Cancel</Button>
+            <Button disabled={editingThickness || !editThicknessValue} onClick={async () => {
+              setEditingThickness(true);
+              const { error } = await supabase.from("production_entries").update({ thickness_mm: Number(editThicknessValue) } as any).eq("id", editEntryId);
+              setEditingThickness(false);
+              if (error) {
+                toast({ title: "Error", description: error.message, variant: "destructive" });
+              } else {
+                toast({ title: "Thickness updated" });
+                setEditThicknessOpen(false);
+                fetchData();
+              }
+            }}>
+              {editingThickness ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
