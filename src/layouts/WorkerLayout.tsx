@@ -1,13 +1,13 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { ClipboardList, History, LogOut, Loader2, Warehouse } from "lucide-react";
+import { ClipboardList, History, LogOut, Loader2, Warehouse, Send } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
 export default function WorkerLayout() {
-  const { user, loading, signOut, profileName } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isWorker } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -31,11 +31,14 @@ export default function WorkerLayout() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  if (isAdmin) return <Navigate to="/admin" replace />;
+  if (!isWorker) return <Navigate to="/login" replace />; // pending or no role
 
   const navItems = [
     { to: "/worker", label: t('new_production_entry'), icon: ClipboardList, end: true },
     { to: "/worker/history", label: t('history'), icon: History, end: false },
     { to: "/worker/stock", label: t('stock') || "Stock", icon: Warehouse, end: false },
+    { to: "/worker/issues", label: t('my_issues') || "My Issues", icon: Send, end: false },
   ];
 
   return (

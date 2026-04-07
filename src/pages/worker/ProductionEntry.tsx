@@ -22,6 +22,7 @@ export default function ProductionEntry() {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
 
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [form, setForm] = useState({
     date: format(new Date(), "yyyy-MM-dd"),
     product_code_id: "",
@@ -41,7 +42,6 @@ export default function ProductionEntry() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
 
   const fetchData = async () => {
     if (!navigator.onLine) {
@@ -75,6 +75,23 @@ export default function ProductionEntry() {
 
   useEffect(() => { fetchData(); }, []);
 
+  // Filter product codes by selected category
+  const filteredProductCodes = selectedCategory
+    ? productCodes.filter((p) => p.category_id === selectedCategory)
+    : productCodes;
+
+  // Reset product code when category changes
+  const handleCategoryChange = (catId: string) => {
+    setSelectedCategory(catId);
+    // Clear product code if it doesn't belong to new category
+    if (form.product_code_id) {
+      const current = productCodes.find((p) => p.id === form.product_code_id);
+      if (current && current.category_id !== catId) {
+        setForm((f) => ({ ...f, product_code_id: "" }));
+      }
+    }
+  };
+
   const totalQuantity = (Number(form.rolls_count) || 0) * (Number(form.quantity_per_roll) || 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,6 +116,7 @@ export default function ProductionEntry() {
       setSubmitted(true);
       setTimeout(() => {
         setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", thickness: "", unit: "meters" });
+        setSelectedCategory("");
         setSubmitted(false);
       }, 2000);
       setSubmitting(false);
@@ -114,6 +132,7 @@ export default function ProductionEntry() {
         setSubmitted(true);
         setTimeout(() => {
           setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", thickness: "", unit: "meters" });
+          setSelectedCategory("");
           setSubmitted(false);
         }, 2000);
       }
@@ -124,6 +143,7 @@ export default function ProductionEntry() {
       setSubmitted(true);
       setTimeout(() => {
         setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", thickness: "", unit: "meters" });
+        setSelectedCategory("");
         setSubmitted(false);
       }, 2000);
     }
@@ -138,7 +158,10 @@ export default function ProductionEntry() {
     setCategoryDialogOpen(false);
     setNewCategoryName("");
     await fetchData();
-    if (data) setNewProductCat(data.id);
+    if (data) {
+      setNewProductCat(data.id);
+      setSelectedCategory(data.id);
+    }
   };
 
   const addProductCode = async () => {
@@ -150,7 +173,10 @@ export default function ProductionEntry() {
     setNewProductCode("");
     setNewProductCat("");
     await fetchData();
-    if (data) setForm((f) => ({ ...f, product_code_id: data.id }));
+    if (data) {
+      setSelectedCategory(data.category_id);
+      setForm((f) => ({ ...f, product_code_id: data.id }));
+    }
   };
 
   const addClient = async () => {
@@ -204,7 +230,7 @@ export default function ProductionEntry() {
                 </DialogContent>
               </Dialog>
             </div>
-            <Select value={selectedCategoryId} onValueChange={(v) => { setSelectedCategoryId(v); setForm(f => ({ ...f, product_code_id: "" })); }}>
+            <Select value={selectedCategory} onValueChange={handleCategoryChange}>
               <SelectTrigger className="h-14 text-lg"><SelectValue placeholder={t('select_category') || 'Select Category'} /></SelectTrigger>
               <SelectContent>{categories.map((c) => <SelectItem className="text-lg py-3" key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
             </Select>
@@ -233,18 +259,16 @@ export default function ProductionEntry() {
                 </DialogContent>
               </Dialog>
             </div>
-            <Select value={form.product_code_id} onValueChange={(v) => {
-              setForm({ ...form, product_code_id: v });
-              const codeCat = productCodes.find(p => p.id === v)?.category_id;
-              if (codeCat && codeCat !== selectedCategoryId) {
-                setSelectedCategoryId(codeCat);
-              }
-            }}>
-              <SelectTrigger className="h-14 text-lg"><SelectValue placeholder={t('select_product_code')} /></SelectTrigger>
+            <Select value={form.product_code_id} onValueChange={(v) => setForm({ ...form, product_code_id: v })}>
+              <SelectTrigger className="h-14 text-lg"><SelectValue placeholder={selectedCategory ? t('select_product_code') : "Select a category first"} /></SelectTrigger>
               <SelectContent>
-                {(selectedCategoryId ? productCodes.filter(p => p.category_id === selectedCategoryId) : productCodes).map((p) => (
-                  <SelectItem className="text-lg py-3" key={p.id} value={p.id}>{p.code}</SelectItem>
-                ))}
+                {filteredProductCodes.length === 0 ? (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    {selectedCategory ? "No products in this category" : "Select a category first"}
+                  </div>
+                ) : (
+                  filteredProductCodes.map((p) => <SelectItem className="text-lg py-3" key={p.id} value={p.id}>{p.code}</SelectItem>)
+                )}
               </SelectContent>
             </Select>
           </div>

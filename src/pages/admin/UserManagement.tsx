@@ -32,6 +32,7 @@ export default function UserManagement() {
   const [newPassword, setNewPassword] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [editForm, setEditForm] = useState({ name: "", employee_id: "", username: "", role: "worker" as AppRole });
+  const [isNewRole, setIsNewRole] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -48,6 +49,7 @@ export default function UserManagement() {
   const openEdit = (user: UserRow) => {
     setSelectedUser(user);
     setEditForm({ name: user.name, employee_id: user.employee_id, username: user.username, role: user.role ?? "worker" });
+    setIsNewRole(!user.role);
     setEditDialogOpen(true);
   };
 
@@ -77,15 +79,26 @@ export default function UserManagement() {
       return;
     }
 
-    const { error: roleError } = await supabase
-      .from("user_roles")
-      .update({ role: editForm.role })
-      .eq("user_id", selectedUser.user_id);
-
-    if (roleError) {
-      toast({ title: "Error updating role", description: roleError.message, variant: "destructive" });
-      setSubmitting(false);
-      return;
+    // Handle role: insert if new, update if existing
+    if (isNewRole) {
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert({ user_id: selectedUser.user_id, role: editForm.role });
+      if (roleError) {
+        toast({ title: "Error assigning role", description: roleError.message, variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .update({ role: editForm.role })
+        .eq("user_id", selectedUser.user_id);
+      if (roleError) {
+        toast({ title: "Error updating role", description: roleError.message, variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
     }
 
     toast({ title: "User updated successfully" });
@@ -173,7 +186,13 @@ export default function UserManagement() {
                 <TableCell className="font-medium">{u.name}</TableCell>
                 <TableCell>{u.employee_id}</TableCell>
                 <TableCell>{u.username}</TableCell>
-                <TableCell><Badge variant="outline">{u.role === "worker" ? "Production Manager" : u.role ?? "—"}</Badge></TableCell>
+                <TableCell>
+                  {u.role ? (
+                    <Badge variant="outline">{u.role === "worker" ? "Production Manager" : u.role}</Badge>
+                  ) : (
+                    <Badge variant="destructive">Pending Approval</Badge>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge
                     variant={u.status === "active" ? "default" : "secondary"}

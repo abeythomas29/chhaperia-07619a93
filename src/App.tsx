@@ -21,7 +21,9 @@ import UserManagement from "./pages/admin/UserManagement";
 import BackupRestore from "./pages/admin/BackupRestore";
 import ProductionEntry from "./pages/worker/ProductionEntry";
 import ProductionHistory from "./pages/worker/ProductionHistory";
+import MyIssues from "./pages/worker/MyIssues";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +61,7 @@ const AppContent = () => {
         <PushNotificationSetup />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="logs" element={<ProductionLogs />} />
@@ -72,6 +75,7 @@ const AppContent = () => {
             <Route index element={<ProductionEntry />} />
             <Route path="history" element={<ProductionHistory />} />
             <Route path="stock" element={<StockManagement />} />
+            <Route path="issues" element={<MyIssues />} />
           </Route>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<NotFound />} />

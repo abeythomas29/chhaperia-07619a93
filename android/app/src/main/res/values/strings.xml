@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ChhaperiaApp</string>
+    <string name="title_activity_main">ChhaperiaApp</string>
+    <string name="package_name">com.chhaperia.app</string>
+    <string name="custom_url_scheme">com.chhaperia.app</string>
+</resources>

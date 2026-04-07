@@ -10,9 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, PackagePlus, ArrowDownCircle, ArrowUpCircle, Package } from "lucide-react";
+import { Search, PackagePlus, ArrowDownCircle, ArrowUpCircle, Package, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+
+interface ThicknessBreakdown {
+  thickness_mm: number | null;
+  produced: number;
+}
 
 interface StockSummary {
   product_code_id: string;
@@ -21,6 +26,7 @@ interface StockSummary {
   produced: number;
   issued: number;
   available: number;
+  thicknessBreakdown: ThicknessBreakdown[];
 }
 
 interface LedgerEntry {
@@ -28,6 +34,7 @@ interface LedgerEntry {
   date: string;
   type: "IN" | "OUT";
   product_code: string;
+  thickness_mm: number | null;
   client_name: string | null;
   quantity: number;
   unit: string;
@@ -53,6 +60,9 @@ export default function StockManagement() {
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [inPage, setInPage] = useState(1);
+  const [outPage, setOutPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   // Issue dialog
   const [issueOpen, setIssueOpen] = useState(false);
@@ -62,7 +72,14 @@ export default function StockManagement() {
   const [issueUnit, setIssueUnit] = useState("meters");
   const [issueNotes, setIssueNotes] = useState("");
   const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [issueThickness, setIssueThickness] = useState("");
   const [issuing, setIssuing] = useState(false);
+
+  // Edit thickness dialog
+  const [editThicknessOpen, setEditThicknessOpen] = useState(false);
+  const [editEntryId, setEditEntryId] = useState("");
+  const [editThicknessValue, setEditThicknessValue] = useState("");
+  const [editingThickness, setEditingThickness] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -70,14 +87,14 @@ export default function StockManagement() {
     // Fetch production entries (IN)
     const { data: prodData } = await supabase
       .from("production_entries")
-      .select("id, date, product_code_id, total_quantity, quantity_per_roll, rolls_count, unit, product_codes(code), profiles:worker_id(name)")
+      .select("id, date, product_code_id, total_quantity, quantity_per_roll, rolls_count, unit, thickness_mm, product_codes(code), profiles:worker_id(name)")
       .order("date", { ascending: false })
       .limit(1000);
 
     // Fetch stock issues (OUT)
     const { data: issueData } = await supabase
       .from("stock_issues")
-      .select("id, date, product_code_id, quantity, unit, notes, client_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
+      .select("id, date, product_code_id, quantity, unit, notes, thickness_mm, client_id, product_codes(code), company_clients(name), profiles:issued_by(name)")
       .order("date", { ascending: false })
       .limit(1000);
 
@@ -89,23 +106,26 @@ export default function StockManagement() {
     setClients(cl ?? []);
     setProductCodes(pc ?? []);
 
-    // Build summaries
-    const prodMap = new Map<string, { code: string; unit: string; produced: number }>();
+    // Build per-product-code totals and thickness breakdowns
+    const pcTotals = new Map<string, { code: string; unit: string; produced: number }>();
+    const thicknessMap = new Map<string, Map<number | null, number>>();
     const issueMap = new Map<string, number>();
 
     for (const p of (prodData ?? []) as any[]) {
       const pcId = p.product_code_id;
-      const qty = p.total_quantity ?? (p.rolls_count * p.quantity_per_roll);
-      const existing = prodMap.get(pcId);
+      const thickness = p.thickness_mm != null ? Number(p.thickness_mm) : null;
+      const qty = Number(p.total_quantity ?? (p.rolls_count * p.quantity_per_roll));
+
+      const existing = pcTotals.get(pcId);
       if (existing) {
-        existing.produced += Number(qty);
+        existing.produced += qty;
       } else {
-        prodMap.set(pcId, {
-          code: p.product_codes?.code ?? "—",
-          unit: p.unit,
-          produced: Number(qty),
-        });
+        pcTotals.set(pcId, { code: p.product_codes?.code ?? "—", unit: p.unit, produced: qty });
       }
+
+      if (!thicknessMap.has(pcId)) thicknessMap.set(pcId, new Map());
+      const tMap = thicknessMap.get(pcId)!;
+      tMap.set(thickness, (tMap.get(thickness) ?? 0) + qty);
     }
 
     for (const i of (issueData ?? []) as any[]) {
@@ -113,12 +133,19 @@ export default function StockManagement() {
       issueMap.set(pcId, (issueMap.get(pcId) ?? 0) + Number(i.quantity));
     }
 
-    const allPcIds = new Set([...prodMap.keys(), ...issueMap.keys()]);
+    const allPcIds = new Set([...pcTotals.keys(), ...issueMap.keys()]);
     const summaryList: StockSummary[] = [];
     for (const pcId of allPcIds) {
-      const prod = prodMap.get(pcId);
+      const prod = pcTotals.get(pcId);
       const produced = prod?.produced ?? 0;
       const issued = issueMap.get(pcId) ?? 0;
+      const tMap = thicknessMap.get(pcId);
+      const breakdown: ThicknessBreakdown[] = [];
+      if (tMap) {
+        for (const [t, q] of Array.from(tMap.entries()).sort((a, b) => (a[0] ?? 0) - (b[0] ?? 0))) {
+          breakdown.push({ thickness_mm: t, produced: q });
+        }
+      }
       summaryList.push({
         product_code_id: pcId,
         code: prod?.code ?? "—",
@@ -126,6 +153,7 @@ export default function StockManagement() {
         produced,
         issued,
         available: produced - issued,
+        thicknessBreakdown: breakdown,
       });
     }
     summaryList.sort((a, b) => a.code.localeCompare(b.code));
@@ -139,6 +167,7 @@ export default function StockManagement() {
         date: p.date,
         type: "IN",
         product_code: p.product_codes?.code ?? "—",
+        thickness_mm: p.thickness_mm != null ? Number(p.thickness_mm) : null,
         client_name: null,
         quantity: p.total_quantity ?? (p.rolls_count * p.quantity_per_roll),
         unit: p.unit,
@@ -152,6 +181,7 @@ export default function StockManagement() {
         date: i.date,
         type: "OUT",
         product_code: i.product_codes?.code ?? "—",
+        thickness_mm: i.thickness_mm != null ? Number(i.thickness_mm) : null,
         client_name: i.company_clients?.name ?? "—",
         quantity: Number(i.quantity),
         unit: i.unit,
@@ -184,6 +214,7 @@ export default function StockManagement() {
       client_id: issueClientId,
       quantity: Number(issueQuantity),
       unit: issueUnit,
+      thickness_mm: issueThickness ? Number(issueThickness) : null,
       notes: issueNotes || null,
       issued_by: user.id,
       date: issueDate,
@@ -205,6 +236,7 @@ export default function StockManagement() {
     setIssueClientId("");
     setIssueQuantity("");
     setIssueUnit("meters");
+    setIssueThickness("");
     setIssueNotes("");
     setIssueDate(format(new Date(), "yyyy-MM-dd"));
   };
@@ -229,7 +261,7 @@ export default function StockManagement() {
         <Input
           placeholder="Search by product code or client..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setInPage(1); setOutPage(1); }}
           className="pl-9"
         />
       </div>
@@ -266,11 +298,31 @@ export default function StockManagement() {
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground text-center mb-3">Unit: {s.unit}</p>
+                <p className="text-xs text-muted-foreground text-center mb-2">Unit: {s.unit}</p>
+
+                {/* Thickness Breakdown */}
+                {s.thicknessBreakdown.length > 0 && s.thicknessBreakdown.some(t => t.thickness_mm != null) && (
+                  <div className="mt-2 border rounded-md overflow-hidden">
+                    <div className="bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                      Thickness Breakdown
+                    </div>
+                    <div className="divide-y">
+                      {s.thicknessBreakdown.map((t) => (
+                        <div key={String(t.thickness_mm)} className="flex items-center justify-between px-3 py-1.5 text-sm">
+                          <span className="font-medium">
+                            {t.thickness_mm != null ? `${t.thickness_mm} mm` : "No thickness"}
+                          </span>
+                          <span className="font-semibold">{t.produced.toLocaleString()} {s.unit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="w-full mt-3"
                   onClick={() => openIssueForProduct(s.product_code_id, s.unit)}
                 >
                   Issue to Client
@@ -281,56 +333,153 @@ export default function StockManagement() {
         )}
       </div>
 
-      {/* Ledger */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Transaction Ledger</h2>
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Product Code</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead className="text-right">Quantity</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>By</TableHead>
-                <TableHead>Notes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
-                </TableRow>
-              ) : filteredLedger.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No transactions found</TableCell>
-                </TableRow>
-              ) : (
-                filteredLedger.map((e) => (
-                  <TableRow key={`${e.type}-${e.id}`}>
-                    <TableCell className="text-base font-medium whitespace-nowrap">
-                      {format(new Date(e.date), "dd/MM/yy")}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={e.type === "IN" ? "default" : "destructive"} className="gap-1">
-                        {e.type === "IN" ? <ArrowDownCircle className="h-3 w-3" /> : <ArrowUpCircle className="h-3 w-3" />}
-                        {e.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{e.product_code}</TableCell>
-                    <TableCell>{e.client_name ?? "—"}</TableCell>
-                    <TableCell className="text-right font-semibold">{Number(e.quantity).toLocaleString()}</TableCell>
-                    <TableCell>{e.unit}</TableCell>
-                    <TableCell>{e.person ?? "—"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{e.notes ?? "—"}</TableCell>
-                  </TableRow>
-                ))
+      {/* Inward & Outward Tables */}
+      <div className="space-y-6">
+        {/* Inward Supply */}
+        {(() => {
+          const inData = filteredLedger.filter(e => e.type === "IN");
+          const inTotalPages = Math.max(1, Math.ceil(inData.length / PAGE_SIZE));
+          const inPaged = inData.slice((inPage - 1) * PAGE_SIZE, inPage * PAGE_SIZE);
+          return (
+            <div>
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <ArrowDownCircle className="h-5 w-5 text-green-600" />
+                Inward Supply (Production)
+                <span className="text-sm font-normal text-muted-foreground">({inData.length} entries)</span>
+              </h2>
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                     <TableHead>Date</TableHead>
+                      <TableHead>Product Code</TableHead>
+                      <TableHead className="text-right">Thickness (mm)</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Worker</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                      </TableRow>
+                    ) : inPaged.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No inward entries found</TableCell>
+                      </TableRow>
+                    ) : (
+                      inPaged.map((e) => (
+                        <TableRow key={`IN-${e.id}`}>
+                          <TableCell className="text-base font-medium whitespace-nowrap">
+                            {format(new Date(e.date), "dd/MM/yy")}
+                          </TableCell>
+                          <TableCell className="font-medium">{e.product_code}</TableCell>
+                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : <span className="text-muted-foreground italic">Not set</span>}</TableCell>
+                          <TableCell className="text-right font-semibold text-green-600">{Number(e.quantity).toLocaleString()}</TableCell>
+                          <TableCell>{e.unit}</TableCell>
+                          <TableCell>{e.person ?? "—"}</TableCell>
+                          <TableCell>
+                            {e.thickness_mm == null && (
+                              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => { setEditEntryId(e.id); setEditThicknessValue(""); setEditThicknessOpen(true); }}>
+                                <Pencil className="h-3 w-3 mr-1" /> Add
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {inTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-sm text-muted-foreground">Page {inPage} of {inTotalPages}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={inPage <= 1} onClick={() => setInPage(p => p - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={inPage >= inTotalPages} onClick={() => setInPage(p => p + 1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               )}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+          );
+        })()}
+
+        {/* Outward Supply */}
+        {(() => {
+          const outData = filteredLedger.filter(e => e.type === "OUT");
+          const outTotalPages = Math.max(1, Math.ceil(outData.length / PAGE_SIZE));
+          const outPaged = outData.slice((outPage - 1) * PAGE_SIZE, outPage * PAGE_SIZE);
+          return (
+            <div>
+              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                Outward Supply (Issued to Clients)
+                <span className="text-sm font-normal text-muted-foreground">({outData.length} entries)</span>
+              </h2>
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                     <TableHead>Date</TableHead>
+                      <TableHead>Product Code</TableHead>
+                      <TableHead className="text-right">Thickness (mm)</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Issued By</TableHead>
+                      <TableHead>Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                      </TableRow>
+                    ) : outPaged.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No outward entries found</TableCell>
+                      </TableRow>
+                    ) : (
+                      outPaged.map((e) => (
+                        <TableRow key={`OUT-${e.id}`}>
+                          <TableCell className="text-base font-medium whitespace-nowrap">
+                            {format(new Date(e.date), "dd/MM/yy")}
+                          </TableCell>
+                          <TableCell className="font-medium">{e.product_code}</TableCell>
+                          <TableCell className="text-right">{e.thickness_mm != null ? e.thickness_mm : "—"}</TableCell>
+                          <TableCell>{e.client_name ?? "—"}</TableCell>
+                          <TableCell className="text-right font-semibold text-red-500">{Number(e.quantity).toLocaleString()}</TableCell>
+                          <TableCell>{e.unit}</TableCell>
+                          <TableCell>{e.person ?? "—"}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{e.notes ?? "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {outTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-sm text-muted-foreground">Page {outPage} of {outTotalPages}</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={outPage <= 1} onClick={() => setOutPage(p => p - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={outPage >= outTotalPages} onClick={() => setOutPage(p => p + 1)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Issue Stock Dialog */}
@@ -383,10 +532,14 @@ export default function StockManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Quantity</Label>
                 <Input type="number" min="0" step="0.01" value={issueQuantity} onChange={(e) => setIssueQuantity(e.target.value)} placeholder="0" />
+              </div>
+              <div className="space-y-2">
+                <Label>Thickness (mm)</Label>
+                <Input type="number" min="0" step="0.01" value={issueThickness} onChange={(e) => setIssueThickness(e.target.value)} placeholder="Optional" />
               </div>
               <div className="space-y-2">
                 <Label>Unit</Label>
@@ -408,6 +561,39 @@ export default function StockManagement() {
             <Button variant="outline" onClick={() => { setIssueOpen(false); resetIssueForm(); }}>Cancel</Button>
             <Button onClick={handleIssue} disabled={issuing} className="bg-secondary hover:bg-secondary/90">
               {issuing ? "Issuing..." : "Issue Stock"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Thickness Dialog */}
+      <Dialog open={editThicknessOpen} onOpenChange={setEditThicknessOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Thickness</DialogTitle>
+            <DialogDescription>Set the thickness for this production entry.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Thickness (mm)</Label>
+              <Input type="number" min="0" step="0.01" value={editThicknessValue} onChange={(e) => setEditThicknessValue(e.target.value)} placeholder="e.g. 0.5" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditThicknessOpen(false)}>Cancel</Button>
+            <Button disabled={editingThickness || !editThicknessValue} onClick={async () => {
+              setEditingThickness(true);
+              const { error } = await supabase.from("production_entries").update({ thickness_mm: Number(editThicknessValue) } as any).eq("id", editEntryId);
+              setEditingThickness(false);
+              if (error) {
+                toast({ title: "Error", description: error.message, variant: "destructive" });
+              } else {
+                toast({ title: "Thickness updated" });
+                setEditThicknessOpen(false);
+                fetchData();
+              }
+            }}>
+              {editingThickness ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

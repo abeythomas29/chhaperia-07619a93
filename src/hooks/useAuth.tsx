@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "super_admin" | "admin" | "worker" | null;
+type AppRole = "super_admin" | "admin" | "worker" | "pending" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +15,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isPending: boolean;
   isWorker: boolean;
 }
 
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Trigger may not have completed yet, retry after a short delay
       setTimeout(() => fetchRole(userId, retries - 1), 1000);
     } else {
-      setRole("worker"); // Fallback default
+      setRole("pending"); // No role assigned — awaiting admin approval
     }
   };
 
@@ -129,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: role === "admin" || role === "super_admin",
         isSuperAdmin: role === "super_admin",
         isWorker: role === "worker",
+        isPending: role === "pending",
       }}
     >
       {children}

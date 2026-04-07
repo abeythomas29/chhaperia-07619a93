@@ -6,7 +6,6 @@ import {
   Building2,
   LogOut,
   Warehouse,
-  DatabaseBackup,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,7 +35,6 @@ const mainItems = [
 
 const superAdminItems = [
   { title: "User Management", url: "/admin/users", icon: Users },
-  { title: "Backup & Restore", url: "/admin/backup", icon: DatabaseBackup },
 ];
 
 export function AdminSidebar() {

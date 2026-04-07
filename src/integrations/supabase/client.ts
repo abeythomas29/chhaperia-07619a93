@@ -10,8 +10,8 @@ const PROXY_URL = "https://chhaperia-supabase-proxy.chhaperia.workers.dev";
 const FALLBACK_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp6YnBnd2l2eHZraGFiaHB4anF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMTAzMTYsImV4cCI6MjA4NzU4NjMxNn0.cIAHZMeMdCN3tadOMwQcbH-tBXXSHaoAFwBGQ4bU7xI";
 
 export const supabase = createClient<Database>(
-  PROXY_URL || supabaseUrl, 
-  supabaseAnonKey || FALLBACK_ANON_KEY, 
+  PROXY_URL || supabaseUrl,
+  supabaseAnonKey || FALLBACK_ANON_KEY,
   {
     auth: {
       storage: localStorage,

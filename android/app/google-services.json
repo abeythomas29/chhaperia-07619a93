@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "685297147037",
+    "project_id": "chhaperia-9cf06",
+    "storage_bucket": "chhaperia-9cf06.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:685297147037:android:d873e3247df2c796d64874",
+        "android_client_info": {
+          "package_name": "com.chhaperia.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUGiKmB8L_khqwDRmOXCbfEXeFE8mnSHQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

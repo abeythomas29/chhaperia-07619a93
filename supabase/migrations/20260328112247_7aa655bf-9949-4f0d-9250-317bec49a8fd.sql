@@ -1,0 +1,1 @@
+ALTER TABLE public.stock_issues ADD COLUMN thickness_mm numeric NULL;
