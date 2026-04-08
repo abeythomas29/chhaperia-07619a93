@@ -97,6 +97,48 @@ export type Database = {
           },
         ]
       }
+      product_recipes: {
+        Row: {
+          created_at: string
+          id: string
+          product_code_id: string
+          quantity_per_unit: number
+          raw_material_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_code_id: string
+          quantity_per_unit?: number
+          raw_material_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_code_id?: string
+          quantity_per_unit?: number
+          raw_material_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_recipes_product_code_id_fkey"
+            columns: ["product_code_id"]
+            isOneToOne: false
+            referencedRelation: "product_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recipes_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_entries: {
         Row: {
           client_id: string | null
@@ -194,6 +236,120 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string
+        }
+        Relationships: []
+      }
+      raw_material_stock_entries: {
+        Row: {
+          added_by: string
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          quantity: number
+          raw_material_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          raw_material_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          raw_material_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_material_stock_entries_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "raw_material_stock_entries_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_material_usage: {
+        Row: {
+          created_at: string
+          id: string
+          production_entry_id: string
+          quantity_used: number
+          raw_material_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          production_entry_id: string
+          quantity_used?: number
+          raw_material_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          production_entry_id?: string
+          quantity_used?: number
+          raw_material_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_material_usage_production_entry_id_fkey"
+            columns: ["production_entry_id"]
+            isOneToOne: false
+            referencedRelation: "production_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_material_usage_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_materials: {
+        Row: {
+          created_at: string
+          current_stock: number
+          id: string
+          name: string
+          status: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          name: string
+          status?: string
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          name?: string
+          status?: string
+          unit?: string
+          updated_at?: string
         }
         Relationships: []
       }
