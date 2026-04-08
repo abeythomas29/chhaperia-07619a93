@@ -345,6 +345,32 @@ export default function UserManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Approve Dialog */}
+      <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Approve User</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Assign a role to <strong>{selectedUser?.name}</strong> to grant them access.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <Label>Role</Label>
+              <Select value={approveRole} onValueChange={(v) => setApproveRole(v as AppRole)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="worker">Production Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={approveUser} disabled={submitting} className="w-full">
+              Approve & Assign Role
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
