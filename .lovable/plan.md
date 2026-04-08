@@ -1,59 +1,71 @@
 
 
-## Problem Analysis
+## Raw Materials Inventory and Product Recipes
 
-The publish is failing because migration `20260314064914` tries to run `ALTER COLUMN rolls_count TYPE numeric` while the generated column `total_quantity` still depends on it. On the **Live** database, `rolls_count` is still `INTEGER` and `total_quantity` is a generated column — so this migration fails every time.
+This feature adds a Bill of Materials (BOM) system where each product code has a recipe of raw materials. When a production manager submits a production entry, they also record how much raw material was consumed, and stock levels are auto-deducted.
 
-The sequence in the migration file is correct (drop total_quantity first, alter type, re-add), but **Lovable Cloud applies migrations to Live on publish**, and the Live database is stuck on the older migration set (last applied: `20260312064021`). The migrations after that have never been applied to Live.
+### Database Changes (4 new tables, 1 migration)
 
-**About the Cloudflare proxy**: Your `client.ts` points to a different Supabase project (`zzbpgwivxvkhabh pxjqt`) via your proxy. The Lovable Cloud backend (`eezbgxbbgaqifgcxxbun`) is a separate database. The publish error is on the Lovable Cloud database — not your production proxy. Your app at runtime uses the proxy, so this Lovable Cloud schema drift is the root cause of the publish blocker.
+**1. `raw_materials` table** -- master list of raw materials
+- id, name, unit (meters/kg), current_stock (numeric), status, created_at, updated_at
+- RLS: authenticated can view; admins and workers can insert; admins can manage all
 
-## Fix Plan
+**2. `product_recipes` table** -- BOM linking product codes to raw materials
+- id, product_code_id (FK), raw_material_id (FK), quantity_per_unit (numeric), created_at, updated_at
+- Represents: "To make 1 unit of product X, you need Y quantity of raw material Z"
+- RLS: authenticated can view; admins and workers can insert/update/delete
 
-### Step 1: Fix the broken migration file
+**3. `raw_material_usage` table** -- actual consumption log per production entry
+- id, production_entry_id (FK), raw_material_id (FK), quantity_used (numeric), created_at
+- RLS: authenticated can view; workers can insert own (via production_entry); admins can manage
 
-Rewrite `supabase/migrations/20260314064914_bdad2890-0244-4a47-8160-5de8fa696278.sql` to handle the generated column dependency correctly by wrapping it in a conditional check:
+**4. `raw_material_stock_entries` table** -- inward stock additions (purchases)
+- id, raw_material_id (FK), quantity, date, notes, added_by (FK to profiles.user_id), created_at
+- RLS: authenticated can view; admins and workers can insert
 
-```sql
--- Drop generated column first, then alter type, then re-add
-ALTER TABLE public.production_entries DROP COLUMN IF EXISTS total_quantity;
-ALTER TABLE public.production_entries ALTER COLUMN rolls_count TYPE numeric USING rolls_count::numeric;
-ALTER TABLE public.production_entries ADD COLUMN total_quantity numeric GENERATED ALWAYS AS (rolls_count * quantity_per_roll) STORED;
-```
+**Database trigger**: On insert to `raw_material_usage`, auto-deduct `quantity_used` from `raw_materials.current_stock`.
+**Database trigger**: On insert to `raw_material_stock_entries`, auto-add `quantity` to `raw_materials.current_stock`.
 
-The only change is adding `IF EXISTS` to the DROP to make it idempotent. The original file already has the correct order (drop, alter, add) — but the error suggests the Live database may be running these statements differently. Let me verify by checking if the migration file content matches what we see.
+### New Pages and UI Changes
 
-Actually, re-reading the error and the migration file: the file **does** drop `total_quantity` first. The error says "cannot alter type of a column used by a generated column" which means the DROP didn't execute or there's a transactional rollback issue.
+**1. Admin page: Raw Materials Management** (`/admin/raw-materials`)
+- List all raw materials with current stock, unit, status
+- Add/edit/delete raw materials
+- Add stock inward entries (purchases)
+- Add to admin sidebar
 
-The real fix: the migration needs `DROP COLUMN IF EXISTS` to be safe, and we should verify the SQL is syntactically valid for the Live Postgres version. The statements look correct though.
+**2. Admin page: Product Recipes** (`/admin/recipes`)
+- Select a product code, define its recipe (list of raw materials + quantity per unit)
+- Add/remove/edit recipe rows
+- Or integrate into existing Products page as a "Recipe" tab/section per product code
 
-**Alternative approach**: Since Live is far behind (only has migrations up to `20260312064021`), and the migration file already has the correct order, the issue might be that the migration is being parsed/applied differently. The safest fix is to consolidate the problematic migration.
+**3. Update Production Entry form** (`ProductionEntry.tsx`)
+- After selecting a product code, auto-load its recipe
+- Show raw material rows pre-filled with expected quantities (recipe qty x manufactured qty)
+- Production manager can adjust actual usage before submitting
+- On submit: insert production_entry + insert raw_material_usage rows in a single transaction
+- Show warnings if raw material stock would go negative
 
-### Step 1: Update migration file to be fully idempotent
+**4. Worker sidebar**: Add "Raw Materials" link to view stock levels
 
-Edit `supabase/migrations/20260314064914_bdad2890-0244-4a47-8160-5de8fa696278.sql`:
-```sql
-DO $$
-BEGIN
-  -- Drop generated column if it exists
-  IF EXISTS (SELECT 1 FROM information_schema.columns 
-             WHERE table_schema='public' AND table_name='production_entries' AND column_name='total_quantity') THEN
-    ALTER TABLE public.production_entries DROP COLUMN total_quantity;
-  END IF;
-  
-  -- Change rolls_count to numeric
-  ALTER TABLE public.production_entries ALTER COLUMN rolls_count TYPE numeric USING rolls_count::numeric;
-  
-  -- Re-add generated column
-  ALTER TABLE public.production_entries ADD COLUMN total_quantity numeric GENERATED ALWAYS AS (rolls_count * quantity_per_roll) STORED;
-END $$;
-```
+### File Changes Summary
 
-This wraps everything in a DO block so it runs as a single transaction with proper ordering.
+| File | Change |
+|------|--------|
+| Migration SQL | Create 4 tables, triggers, RLS policies |
+| `src/pages/admin/RawMaterials.tsx` | New page for raw material CRUD + stock inward |
+| `src/pages/admin/ProductRecipes.tsx` | New page for managing BOMs per product code |
+| `src/pages/worker/ProductionEntry.tsx` | Add raw material usage section to the form |
+| `src/components/AdminSidebar.tsx` | Add Raw Materials and Recipes nav items |
+| `src/App.tsx` | Add routes for new pages |
+| Worker sidebar | Add raw materials view link |
 
-### Step 2: Similarly update migration `20260320093159` to be idempotent
+### How It Works End-to-End
 
-Add `IF NOT EXISTS` / conditional checks for the `stock_issues` table and `client_id` nullable change, since Live may not have these yet.
-
-That is the complete fix — no other files need changing. The Cloudflare proxy setup is unrelated to the publish error; the error is purely about Lovable Cloud's own database schema sync.
+1. Admin/Manager adds raw materials (e.g., "ALUMINIUM FOIL 009MIC", unit: kg)
+2. Admin/Manager adds stock purchases to build inventory
+3. Admin/Manager defines recipe for a product code (e.g., "DUO ALUMINIUM POLYESTER TAPE 0.07" needs 0.58 kg ALUMINIUM FOIL + 0.38 rolls POLYESTER FILM...)
+4. Production Manager creates a production entry, selects the product, the recipe auto-loads
+5. Manager adjusts actual quantities used, submits
+6. System records the production entry AND deducts raw materials from inventory automatically
 
