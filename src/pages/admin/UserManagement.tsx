@@ -165,11 +165,68 @@ export default function UserManagement() {
     fetchUsers();
   };
 
+  const pendingUsers = users.filter((u) => !u.role);
+  const approvedUsers = users.filter((u) => !!u.role);
+
+  const openApprove = (user: UserRow) => {
+    setSelectedUser(user);
+    setApproveRole("worker");
+    setApproveDialogOpen(true);
+  };
+
+  const approveUser = async () => {
+    if (!selectedUser) return;
+    setSubmitting(true);
+    const { error } = await supabase
+      .from("user_roles")
+      .insert({ user_id: selectedUser.user_id, role: approveRole });
+    if (error) {
+      toast({ title: "Error approving user", description: error.message, variant: "destructive" });
+      setSubmitting(false);
+      return;
+    }
+    toast({ title: `${selectedUser.name} approved as ${approveRole === "worker" ? "Production Manager" : approveRole}` });
+    setApproveDialogOpen(false);
+    setSelectedUser(null);
+    setSubmitting(false);
+    fetchUsers();
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">User Management</h1>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">User Management</h1>
+
+      {/* Pending Approval Section */}
+      {pendingUsers.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-amber-600" />
+              Pending Approvals ({pendingUsers.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingUsers.map((u) => (
+                <div key={u.id} className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                  <div>
+                    <p className="font-medium">{u.name}</p>
+                    <p className="text-sm text-muted-foreground">Employee ID: {u.employee_id} · {u.username}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="default" onClick={() => openApprove(u)}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => openDelete(u)}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="border rounded-lg">
         <Table>
