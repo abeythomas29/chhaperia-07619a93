@@ -31,9 +31,6 @@ const mainItems = [
   { title: "Stock Management", url: "/admin/stock", icon: Warehouse },
   { title: "Products", url: "/admin/products", icon: Package },
   { title: "Clients", url: "/admin/clients", icon: Building2 },
-];
-
-const superAdminItems = [
   { title: "User Management", url: "/admin/users", icon: Users },
 ];
 
