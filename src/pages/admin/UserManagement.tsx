@@ -179,7 +179,7 @@ export default function UserManagement() {
     setSubmitting(true);
     const { error } = await supabase
       .from("user_roles")
-      .insert({ user_id: selectedUser.user_id, role: approveRole });
+      .insert({ user_id: selectedUser.user_id, role: approveRole } as any);
     if (error) {
       toast({ title: "Error approving user", description: error.message, variant: "destructive" });
       setSubmitting(false);
