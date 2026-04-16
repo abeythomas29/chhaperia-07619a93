@@ -248,7 +248,7 @@ export default function UserManagement() {
                 <TableCell>{u.username}</TableCell>
                 <TableCell>
                   {u.role ? (
-                    <Badge variant="outline">{u.role === "worker" ? "Production Manager" : u.role}</Badge>
+                    <Badge variant="outline">{u.role === "worker" ? "Production Manager" : u.role === "inventory_manager" ? "Inventory Manager" : u.role}</Badge>
                   ) : (
                     <Badge variant="destructive">Pending Approval</Badge>
                   )}
