@@ -212,6 +212,7 @@ export type Database = {
           employee_id: string
           id: string
           name: string
+          requested_department: Database["public"]["Enums"]["signup_department"]
           status: string
           updated_at: string
           user_id: string
@@ -222,6 +223,7 @@ export type Database = {
           employee_id: string
           id?: string
           name: string
+          requested_department?: Database["public"]["Enums"]["signup_department"]
           status?: string
           updated_at?: string
           user_id: string
@@ -232,6 +234,7 @@ export type Database = {
           employee_id?: string
           id?: string
           name?: string
+          requested_department?: Database["public"]["Enums"]["signup_department"]
           status?: string
           updated_at?: string
           user_id?: string
@@ -458,6 +461,7 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "worker" | "inventory_manager"
+      signup_department: "worker" | "inventory_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -586,6 +590,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "worker", "inventory_manager"],
+      signup_department: ["worker", "inventory_manager"],
     },
   },
 } as const
