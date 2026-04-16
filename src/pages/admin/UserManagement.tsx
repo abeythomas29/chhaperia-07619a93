@@ -14,6 +14,19 @@ import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
+type SignupDepartment = Database["public"]["Enums"]["signup_department"];
+
+const departmentLabels: Record<SignupDepartment, string> = {
+  worker: "Production Manager",
+  inventory_manager: "Inventory Manager",
+};
+
+const roleLabels: Record<AppRole, string> = {
+  worker: "Production Manager",
+  inventory_manager: "Inventory Manager",
+  admin: "Admin",
+  super_admin: "Super Admin",
+};
 
 interface UserRow {
   id: string;
@@ -23,6 +36,7 @@ interface UserRow {
   status: string;
   user_id: string;
   role?: AppRole;
+  requested_department: SignupDepartment;
 }
 
 export default function UserManagement() {
@@ -170,7 +184,7 @@ export default function UserManagement() {
 
   const openApprove = (user: UserRow) => {
     setSelectedUser(user);
-    setApproveRole("worker");
+    setApproveRole(user.requested_department);
     setApproveDialogOpen(true);
   };
 
@@ -185,7 +199,7 @@ export default function UserManagement() {
       setSubmitting(false);
       return;
     }
-    toast({ title: `${selectedUser.name} approved as ${approveRole === "worker" ? "Production Manager" : approveRole}` });
+    toast({ title: `${selectedUser.name} approved as ${roleLabels[approveRole]}` });
     setApproveDialogOpen(false);
     setSelectedUser(null);
     setSubmitting(false);
@@ -212,6 +226,7 @@ export default function UserManagement() {
                   <div>
                     <p className="font-medium">{u.name}</p>
                     <p className="text-sm text-muted-foreground">Employee ID: {u.employee_id} · {u.username}</p>
+                    <p className="text-sm text-muted-foreground">Requested department: {departmentLabels[u.requested_department]}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="default" onClick={() => openApprove(u)}>

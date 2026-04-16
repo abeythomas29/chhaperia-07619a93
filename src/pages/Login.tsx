@@ -11,6 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { z } from "zod";
+
+const signupSchema = z.object({
+  name: z.string().trim().min(1, "Full name is required").max(100, "Full name is too long"),
+  employeeId: z.string().trim().min(1, "Employee ID is required").max(50, "Employee ID is too long"),
+  email: z.string().trim().email("Enter a valid email address").max(255, "Email is too long"),
+  password: z.string().min(6, "Password must be at least 6 characters").max(72, "Password is too long"),
+  requestedDepartment: z.enum(["worker", "inventory_manager"], {
+    required_error: "Please select a department",
+  }),
+});
 
 export default function Login() {
   const { signIn, signUp, signOut: authSignOut, user, role, loading, isPending, profileName } = useAuth();
@@ -20,6 +32,7 @@ export default function Login() {
   const [signupEmployeeId, setSignupEmployeeId] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
+  const [signupDepartment, setSignupDepartment] = useState<"worker" | "inventory_manager">("worker");
   const [submitting, setSubmitting] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const { toast } = useToast();
@@ -95,17 +108,31 @@ export default function Login() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupName || !signupEmployeeId || !signupEmail || !signupPassword) return;
-    if (signupPassword.length < 6) {
-      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+    const parsed = signupSchema.safeParse({
+      name: signupName,
+      employeeId: signupEmployeeId,
+      email: signupEmail,
+      password: signupPassword,
+      requestedDepartment: signupDepartment,
+    });
+
+    if (!parsed.success) {
+      toast({ title: "Signup failed", description: parsed.error.issues[0]?.message, variant: "destructive" });
       return;
     }
+
     setSubmitting(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupName, signupEmployeeId);
+    const { name, employeeId, email, password, requestedDepartment } = parsed.data;
+    const { error } = await signUp(email, password, name, employeeId, requestedDepartment);
     if (error) {
       toast({ title: "Signup failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Account created!", description: "Please wait for an administrator to assign your role." });
+      toast({ title: "Account created!", description: "Please wait for an administrator to review your requested department and assign your role." });
+      setSignupName("");
+      setSignupEmployeeId("");
+      setSignupEmail("");
+      setSignupPassword("");
+      setSignupDepartment("worker");
     }
     setSubmitting(false);
   };
@@ -161,12 +188,24 @@ export default function Login() {
                   <Label htmlFor="signup-password">Password</Label>
                   <Input id="signup-password" type="password" placeholder="Min 6 characters" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required />
                 </div>
+                <div className="space-y-2">
+                  <Label>Requested Department</Label>
+                  <Select value={signupDepartment} onValueChange={(value) => setSignupDepartment(value as "worker" | "inventory_manager") }>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="worker">Production Manager</SelectItem>
+                      <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground" disabled={submitting}>
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Account
                 </Button>
                 <p className="text-xs text-muted-foreground text-center">
-                  Your account will need admin approval before you can access the system.
+                  Your account will stay pending until an admin approves your requested department.
                 </p>
                 <p className="text-xs text-muted-foreground text-center mt-2">
                   By creating an account, you agree to our{" "}
