@@ -34,6 +34,7 @@ export default function Login() {
 
   if (user && role && role !== "pending") {
     if (role === "worker") return <Navigate to="/worker" replace />;
+    if (role === "inventory_manager") return <Navigate to="/inventory" replace />;
     return <Navigate to="/admin" replace />;
   }
 

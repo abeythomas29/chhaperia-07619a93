@@ -248,7 +248,7 @@ export default function UserManagement() {
                 <TableCell>{u.username}</TableCell>
                 <TableCell>
                   {u.role ? (
-                    <Badge variant="outline">{u.role === "worker" ? "Production Manager" : u.role}</Badge>
+                    <Badge variant="outline">{u.role === "worker" ? "Production Manager" : u.role === "inventory_manager" ? "Inventory Manager" : u.role}</Badge>
                   ) : (
                     <Badge variant="destructive">Pending Approval</Badge>
                   )}
@@ -293,10 +293,11 @@ export default function UserManagement() {
               <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v as AppRole })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="worker">Production Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                </SelectContent>
+                   <SelectItem value="worker">Production Manager</SelectItem>
+                   <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                   <SelectItem value="admin">Admin</SelectItem>
+                   <SelectItem value="super_admin">Super Admin</SelectItem>
+                 </SelectContent>
               </Select>
             </div>
             <Button onClick={updateUser} disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90">Save Changes</Button>
@@ -359,13 +360,14 @@ export default function UserManagement() {
               <Select value={approveRole} onValueChange={(v) => setApproveRole(v as AppRole)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="worker">Production Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="super_admin">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={approveUser} disabled={submitting} className="w-full">
+                   <SelectItem value="worker">Production Manager</SelectItem>
+                   <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                   <SelectItem value="admin">Admin</SelectItem>
+                   <SelectItem value="super_admin">Super Admin</SelectItem>
+                 </SelectContent>
+             </Select>
+             </div>
+             <Button onClick={approveUser} disabled={submitting} className="w-full">
               Approve & Assign Role
             </Button>
           </div>

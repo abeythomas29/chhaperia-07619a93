@@ -1,12 +1,12 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { ClipboardList, History, LogOut, Loader2, Warehouse, Send, Boxes } from "lucide-react";
+import { Package, ArrowDownToLine, History, LogOut, Loader2 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function WorkerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isWorker } = useAuth();
+export default function InventoryManagerLayout() {
+  const { user, loading, signOut, profileName, isAdmin, isWorker, isInventoryManager } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -25,20 +25,19 @@ export default function WorkerLayout() {
 
   if (!user) return <Navigate to="/login" replace />;
   if (isAdmin) return <Navigate to="/admin" replace />;
-  if (!isWorker) return <Navigate to="/login" replace />; // pending or no role
+  if (isWorker) return <Navigate to="/worker" replace />;
+  if (!isInventoryManager) return <Navigate to="/login" replace />;
 
   const navItems = [
-    { to: "/worker", label: "New Entry", icon: ClipboardList, end: true },
-    { to: "/worker/history", label: "My History", icon: History, end: false },
-    { to: "/worker/stock", label: "Stock", icon: Warehouse, end: false },
-    { to: "/worker/inventory", label: "Inventory", icon: Boxes, end: false },
-    { to: "/worker/issues", label: "My Issues", icon: Send, end: false },
+    { to: "/inventory", label: "Add Stock", icon: ArrowDownToLine, end: true },
+    { to: "/inventory/view", label: "Inventory", icon: Package, end: false },
+    { to: "/inventory/history", label: "My History", icon: History, end: false },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <header className="h-14 border-b bg-primary text-primary-foreground flex items-center justify-between px-4">
-        <Link to="/worker" className="flex items-center gap-3">
+        <Link to="/inventory" className="flex items-center gap-3">
           <img src={logo} alt="Chhaperia Cables" className="h-8 w-auto" />
           <span className="font-bold text-sm">Chhaperia Cables</span>
         </Link>

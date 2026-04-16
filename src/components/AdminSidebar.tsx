@@ -7,7 +7,6 @@ import {
   LogOut,
   Warehouse,
   Boxes,
-  BookOpen,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,8 +31,7 @@ const mainItems = [
   { title: "Production Logs", url: "/admin/logs", icon: ClipboardList },
   { title: "Stock Management", url: "/admin/stock", icon: Warehouse },
   { title: "Products", url: "/admin/products", icon: Package },
-  { title: "Raw Materials", url: "/admin/raw-materials", icon: Boxes },
-  { title: "Recipes", url: "/admin/recipes", icon: BookOpen },
+  { title: "Inventory", url: "/admin/inventory", icon: Boxes },
   { title: "Clients", url: "/admin/clients", icon: Building2 },
   { title: "User Management", url: "/admin/users", icon: Users },
 ];
@@ -70,7 +68,6 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
       </SidebarContent>
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <div className="flex items-center justify-between">

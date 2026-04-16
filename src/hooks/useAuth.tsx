@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
-type AppRole = "super_admin" | "admin" | "worker" | "pending" | null;
+type AppRole = "super_admin" | "admin" | "worker" | "inventory_manager" | "pending" | null;
 
 interface AuthContextType {
   user: User | null;
@@ -17,6 +17,7 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   isPending: boolean;
   isWorker: boolean;
+  isInventoryManager: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,10 +34,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data) {
       setRole(data as AppRole);
     } else if (retries > 0) {
-      // Trigger may not have completed yet, retry after a short delay
       setTimeout(() => fetchRole(userId, retries - 1), 1000);
     } else {
-      setRole("pending"); // No role assigned — awaiting admin approval
+      setRole("pending");
     }
   };
 
@@ -73,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        // Clear stale/corrupt session
         supabase.auth.signOut();
         setSession(null);
         setUser(null);
@@ -98,7 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name: string, employeeId: string) => {
-    // Pass name and employee_id as metadata — the DB trigger handles profile/role creation
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -131,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSuperAdmin: role === "super_admin",
         isWorker: role === "worker",
         isPending: role === "pending",
+        isInventoryManager: role === "inventory_manager",
       }}
     >
       {children}

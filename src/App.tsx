@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import AdminLayout from "./layouts/AdminLayout";
 import WorkerLayout from "./layouts/WorkerLayout";
+import InventoryManagerLayout from "./layouts/InventoryManagerLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import ProductionLogs from "./pages/admin/ProductionLogs";
 import StockManagement from "./pages/admin/StockManagement";
@@ -14,10 +15,12 @@ import Products from "./pages/admin/Products";
 import Clients from "./pages/admin/Clients";
 import UserManagement from "./pages/admin/UserManagement";
 import RawMaterials from "./pages/admin/RawMaterials";
-import ProductRecipes from "./pages/admin/ProductRecipes";
 import ProductionEntry from "./pages/worker/ProductionEntry";
 import ProductionHistory from "./pages/worker/ProductionHistory";
 import MyIssues from "./pages/worker/MyIssues";
+import InwardEntry from "./pages/inventory/InwardEntry";
+import InventoryView from "./pages/inventory/InventoryView";
+import InwardHistory from "./pages/inventory/InwardHistory";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 
@@ -39,16 +42,20 @@ const App = () => (
               <Route path="stock" element={<StockManagement />} />
               <Route path="products" element={<Products />} />
               <Route path="clients" element={<Clients />} />
-              <Route path="raw-materials" element={<RawMaterials />} />
-              <Route path="recipes" element={<ProductRecipes />} />
+              <Route path="inventory" element={<RawMaterials />} />
               <Route path="users" element={<UserManagement />} />
             </Route>
             <Route path="/worker" element={<WorkerLayout />}>
               <Route index element={<ProductionEntry />} />
               <Route path="history" element={<ProductionHistory />} />
               <Route path="stock" element={<StockManagement />} />
-              <Route path="raw-materials" element={<RawMaterials />} />
+              <Route path="inventory" element={<RawMaterials />} />
               <Route path="issues" element={<MyIssues />} />
+            </Route>
+            <Route path="/inventory" element={<InventoryManagerLayout />}>
+              <Route index element={<InwardEntry />} />
+              <Route path="view" element={<InventoryView />} />
+              <Route path="history" element={<InwardHistory />} />
             </Route>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
