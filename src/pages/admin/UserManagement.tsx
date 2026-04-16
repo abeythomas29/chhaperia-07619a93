@@ -86,7 +86,7 @@ export default function UserManagement() {
     if (isNewRole) {
       const { error: roleError } = await supabase
         .from("user_roles")
-        .insert({ user_id: selectedUser.user_id, role: editForm.role });
+        .insert({ user_id: selectedUser.user_id, role: editForm.role } as any);
       if (roleError) {
         toast({ title: "Error assigning role", description: roleError.message, variant: "destructive" });
         setSubmitting(false);
@@ -95,7 +95,7 @@ export default function UserManagement() {
     } else {
       const { error: roleError } = await supabase
         .from("user_roles")
-        .update({ role: editForm.role })
+        .update({ role: editForm.role } as any)
         .eq("user_id", selectedUser.user_id);
       if (roleError) {
         toast({ title: "Error updating role", description: roleError.message, variant: "destructive" });
@@ -179,7 +179,7 @@ export default function UserManagement() {
     setSubmitting(true);
     const { error } = await supabase
       .from("user_roles")
-      .insert({ user_id: selectedUser.user_id, role: approveRole });
+      .insert({ user_id: selectedUser.user_id, role: approveRole } as any);
     if (error) {
       toast({ title: "Error approving user", description: error.message, variant: "destructive" });
       setSubmitting(false);
