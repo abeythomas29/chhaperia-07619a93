@@ -7,18 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, CheckCircle, Loader2, AlertTriangle } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, CheckCircle, Loader2, Trash2, ChevronDown, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-interface RecipeItem {
+interface MaterialUsageRow {
   raw_material_id: string;
-  material_name: string;
-  material_unit: string;
-  quantity_per_unit: number;
+  quantity_used: string;
+}
+
+interface RawMaterial {
+  id: string;
+  name: string;
+  unit: string;
   current_stock: number;
-  actual_used: string; // form input string
 }
 
 export default function ProductionEntry() {
@@ -28,6 +31,7 @@ export default function ProductionEntry() {
   const [productCodes, setProductCodes] = useState<{ id: string; code: string; category_id: string }[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
 
   const [selectedCategory, setSelectedCategory] = useState("");
   const [form, setForm] = useState({
@@ -50,77 +54,26 @@ export default function ProductionEntry() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Raw material recipe state
-  const [recipeItems, setRecipeItems] = useState<RecipeItem[]>([]);
-  const [loadingRecipe, setLoadingRecipe] = useState(false);
+  // Optional raw material usage
+  const [materialUsage, setMaterialUsage] = useState<MaterialUsageRow[]>([]);
+  const [materialsOpen, setMaterialsOpen] = useState(false);
 
   const fetchData = async () => {
-    const [codesRes, catsRes, clientsRes] = await Promise.all([
+    const [codesRes, catsRes, clientsRes, matsRes] = await Promise.all([
       supabase.from("product_codes").select("id, code, category_id").eq("status", "active").order("code"),
       supabase.from("product_categories").select("id, name").eq("status", "active").order("name"),
       supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
+      supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name"),
     ]);
     setProductCodes(codesRes.data ?? []);
     setCategories(catsRes.data ?? []);
     setClients(clientsRes.data ?? []);
+    setRawMaterials(matsRes.data ?? []);
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  // Load recipe when product code changes
-  useEffect(() => {
-    if (!form.product_code_id) { setRecipeItems([]); return; }
-    const loadRecipe = async () => {
-      setLoadingRecipe(true);
-      const { data: recipes } = await supabase
-        .from("product_recipes")
-        .select("raw_material_id, quantity_per_unit")
-        .eq("product_code_id", form.product_code_id);
-
-      if (!recipes || recipes.length === 0) {
-        setRecipeItems([]);
-        setLoadingRecipe(false);
-        return;
-      }
-
-      const materialIds = recipes.map((r: { raw_material_id: string }) => r.raw_material_id);
-      const { data: materials } = await supabase
-        .from("raw_materials")
-        .select("id, name, unit, current_stock")
-        .in("id", materialIds);
-
-      const materialMap = new Map((materials ?? []).map((m: { id: string; name: string; unit: string; current_stock: number }) => [m.id, m]));
-
-      setRecipeItems(recipes.map((r: { raw_material_id: string; quantity_per_unit: number }) => {
-        const mat = materialMap.get(r.raw_material_id);
-        return {
-          raw_material_id: r.raw_material_id,
-          material_name: mat?.name ?? "Unknown",
-          material_unit: mat?.unit ?? "",
-          quantity_per_unit: r.quantity_per_unit,
-          current_stock: mat?.current_stock ?? 0,
-          actual_used: "", // will be auto-calculated
-        };
-      }));
-      setLoadingRecipe(false);
-    };
-    loadRecipe();
-  }, [form.product_code_id]);
-
-  // Auto-calculate expected usage when total quantity changes
   const totalQuantity = (Number(form.rolls_count) || 0) * (Number(form.quantity_per_roll) || 0);
-
-  useEffect(() => {
-    if (recipeItems.length === 0) return;
-    setRecipeItems((prev) =>
-      prev.map((item) => ({
-        ...item,
-        actual_used: totalQuantity > 0
-          ? (item.quantity_per_unit * totalQuantity).toFixed(3)
-          : "",
-      }))
-    );
-  }, [totalQuantity, form.product_code_id]);
 
   const filteredProductCodes = selectedCategory
     ? productCodes.filter((p) => p.category_id === selectedCategory)
@@ -136,13 +89,22 @@ export default function ProductionEntry() {
     }
   };
 
-  const updateRecipeActual = (index: number, value: string) => {
-    setRecipeItems((prev) => prev.map((item, i) => i === index ? { ...item, actual_used: value } : item));
+  // Material usage helpers
+  const addMaterialRow = () => {
+    setMaterialUsage((prev) => [...prev, { raw_material_id: "", quantity_used: "" }]);
   };
 
-  const hasStockWarning = recipeItems.some(
-    (item) => Number(item.actual_used) > item.current_stock
-  );
+  const updateMaterialRow = (index: number, field: keyof MaterialUsageRow, value: string) => {
+    setMaterialUsage((prev) => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
+  };
+
+  const removeMaterialRow = (index: number) => {
+    setMaterialUsage((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const usedMaterialIds = materialUsage.map((r) => r.raw_material_id).filter(Boolean);
+  const getAvailableMaterials = (currentId: string) =>
+    rawMaterials.filter((m) => m.id === currentId || !usedMaterialIds.includes(m.id));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,19 +135,17 @@ export default function ProductionEntry() {
       return;
     }
 
-    // Insert raw material usage rows
-    const usageRows = recipeItems
-      .filter((item) => Number(item.actual_used) > 0)
-      .map((item) => ({
+    // Insert optional raw material usage rows
+    const validUsage = materialUsage.filter((r) => r.raw_material_id && Number(r.quantity_used) > 0);
+    if (validUsage.length > 0) {
+      const usageRows = validUsage.map((r) => ({
         production_entry_id: entry.id,
-        raw_material_id: item.raw_material_id,
-        quantity_used: Number(item.actual_used),
+        raw_material_id: r.raw_material_id,
+        quantity_used: Number(r.quantity_used),
       }));
-
-    if (usageRows.length > 0) {
       const { error: usageError } = await supabase.from("raw_material_usage").insert(usageRows);
       if (usageError) {
-        toast({ title: "Warning", description: "Production saved but raw material usage failed: " + usageError.message, variant: "destructive" });
+        toast({ title: "Warning", description: "Production saved but material usage failed: " + usageError.message, variant: "destructive" });
       }
     }
 
@@ -193,7 +153,8 @@ export default function ProductionEntry() {
     setTimeout(() => {
       setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "" });
       setSelectedCategory("");
-      setRecipeItems([]);
+      setMaterialUsage([]);
+      setMaterialsOpen(false);
       setSubmitted(false);
     }, 2000);
     setSubmitting(false);
@@ -348,55 +309,68 @@ export default function ProductionEntry() {
             <p className="text-3xl font-bold text-primary">{totalQuantity.toLocaleString()} <span className="text-lg font-normal text-muted-foreground">{form.unit}</span></p>
           </div>
 
-          {/* Raw Material Usage Section */}
-          {loadingRecipe ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">Loading recipe...</span>
-            </div>
-          ) : recipeItems.length > 0 ? (
-            <Card className="border-secondary/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold">Raw Material Usage</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {recipeItems.map((item, idx) => {
-                  const actual = Number(item.actual_used) || 0;
-                  const overStock = actual > item.current_stock;
-                  return (
-                    <div key={item.raw_material_id} className="flex items-center gap-3 py-1">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{item.material_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Stock: {item.current_stock.toLocaleString()} {item.material_unit}
+          {/* Optional Raw Material Usage */}
+          <Collapsible open={materialsOpen} onOpenChange={setMaterialsOpen}>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="outline" className="w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Raw Materials Used (Optional)
+                  {materialUsage.length > 0 && (
+                    <span className="text-xs bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">
+                      {materialUsage.length}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${materialsOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3 space-y-3">
+              {materialUsage.map((row, idx) => {
+                const mat = rawMaterials.find((m) => m.id === row.raw_material_id);
+                return (
+                  <div key={idx} className="flex items-end gap-2">
+                    <div className="flex-1">
+                      {idx === 0 && <Label className="text-xs">Material</Label>}
+                      <Select value={row.raw_material_id} onValueChange={(v) => updateMaterialRow(idx, "raw_material_id", v)}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Select material" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableMaterials(row.raw_material_id).map((m) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {mat && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Stock: {mat.current_stock.toLocaleString()} {mat.unit}
                         </p>
-                      </div>
-                      <div className="w-28 flex items-center gap-1">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.001"
-                          className={`text-right text-sm h-8 ${overStock ? "border-destructive" : ""}`}
-                          value={item.actual_used}
-                          onChange={(e) => updateRecipeActual(idx, e.target.value)}
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground w-10">{item.material_unit}</span>
-                      {overStock && <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />}
+                      )}
                     </div>
-                  );
-                })}
-                {hasStockWarning && (
-                  <p className="text-xs text-destructive flex items-center gap-1 mt-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Some materials exceed available stock
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ) : form.product_code_id ? (
-            <p className="text-xs text-muted-foreground text-center">No recipe defined for this product.</p>
-          ) : null}
+                    <div className="w-24">
+                      {idx === 0 && <Label className="text-xs">Qty</Label>}
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        className="h-9 text-right"
+                        value={row.quantity_used}
+                        onChange={(e) => updateMaterialRow(idx, "quantity_used", e.target.value)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => removeMaterialRow(idx)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                );
+              })}
+              <Button type="button" variant="outline" size="sm" onClick={addMaterialRow} className="w-full">
+                <Plus className="h-4 w-4 mr-1" /> Add Material
+              </Button>
+            </CollapsibleContent>
+          </Collapsible>
 
           <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-lg py-6">
             {submitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
