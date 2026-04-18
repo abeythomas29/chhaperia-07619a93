@@ -57,6 +57,8 @@ export default function RawMaterials() {
   const [stockQty, setStockQty] = useState("");
   const [stockDate, setStockDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [stockLot, setStockLot] = useState("");
+  const [stockSupplier, setStockSupplier] = useState("");
+  const [stockPallets, setStockPallets] = useState("");
   const [stockNotes, setStockNotes] = useState("");
 
   const fetchData = async () => {
