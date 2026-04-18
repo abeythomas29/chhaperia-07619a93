@@ -66,21 +66,25 @@ export default function InwardHistory() {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Material</TableHead>
+                <TableHead>Supplier</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Unit</TableHead>
+                <TableHead className="text-right">Pallets</TableHead>
                 <TableHead>Lot No.</TableHead>
                 <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {entries.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No entries yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No entries yet</TableCell></TableRow>
               ) : entries.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
                   <TableCell className="font-medium">{e.material_name}</TableCell>
+                  <TableCell>{e.supplier ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono">{e.quantity.toLocaleString()}</TableCell>
                   <TableCell>{e.material_unit}</TableCell>
+                  <TableCell className="text-right font-mono">{e.pallets ?? "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{e.lot_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                 </TableRow>
