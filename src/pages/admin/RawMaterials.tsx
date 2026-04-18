@@ -27,6 +27,7 @@ interface StockEntry {
   raw_material_id: string;
   quantity: number;
   date: string;
+  lot_number: string | null;
   notes: string | null;
   added_by: string;
   created_at: string;
@@ -36,7 +37,7 @@ export default function RawMaterials() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [materials, setMaterials] = useState<RawMaterial[]>([]);
-  const [stockEntries, setStockEntries] = useState<(StockEntry & { material_name?: string; person_name?: string })[]>([]);
+  const [stockEntries, setStockEntries] = useState<(StockEntry & { material_name?: string; material_unit?: string; person_name?: string })[]>([]);
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [stockOpen, setStockOpen] = useState(false);
@@ -53,6 +54,7 @@ export default function RawMaterials() {
   const [stockMaterialId, setStockMaterialId] = useState("");
   const [stockQty, setStockQty] = useState("");
   const [stockDate, setStockDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [stockLot, setStockLot] = useState("");
   const [stockNotes, setStockNotes] = useState("");
 
   const fetchData = async () => {
@@ -64,7 +66,7 @@ export default function RawMaterials() {
 
     const entries = entryRes.data ?? [];
     // Resolve names
-    const materialMap = new Map((matRes.data ?? []).map((m: RawMaterial) => [m.id, m.name]));
+    const materialMap = new Map((matRes.data ?? []).map((m: RawMaterial) => [m.id, m]));
     const userIds = [...new Set(entries.map((e: StockEntry) => e.added_by))];
     let profileMap = new Map<string, string>();
     if (userIds.length > 0) {
@@ -73,7 +75,8 @@ export default function RawMaterials() {
     }
     setStockEntries(entries.map((e: StockEntry) => ({
       ...e,
-      material_name: materialMap.get(e.raw_material_id) ?? "Unknown",
+      material_name: materialMap.get(e.raw_material_id)?.name ?? "Unknown",
+      material_unit: materialMap.get(e.raw_material_id)?.unit ?? "",
       person_name: profileMap.get(e.added_by) ?? "Unknown",
     })));
   };
@@ -127,14 +130,16 @@ export default function RawMaterials() {
       raw_material_id: stockMaterialId,
       quantity: Number(stockQty),
       date: stockDate,
+      lot_number: stockLot.trim() || null,
       notes: stockNotes || null,
       added_by: user.id,
-    });
+    } as any);
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Stock added" });
     setStockOpen(false);
     setStockMaterialId("");
     setStockQty("");
+    setStockLot("");
     setStockNotes("");
     fetchData();
   };
@@ -172,6 +177,10 @@ export default function RawMaterials() {
                 <div>
                   <Label>Date</Label>
                   <Input type="date" value={stockDate} onChange={(e) => setStockDate(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Lot Number</Label>
+                  <Input value={stockLot} onChange={(e) => setStockLot(e.target.value)} placeholder="e.g. LOT-2025-001" />
                 </div>
                 <div>
                   <Label>Notes (optional)</Label>
@@ -257,18 +266,22 @@ export default function RawMaterials() {
                 <TableHead>Date</TableHead>
                 <TableHead>Material</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>Lot No.</TableHead>
                 <TableHead>Notes</TableHead>
                 <TableHead>Added By</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {stockEntries.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
               ) : stockEntries.map((e) => (
                 <TableRow key={e.id}>
-                  <TableCell>{format(new Date(e.date), "dd MMM yyyy")}</TableCell>
+                  <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
                   <TableCell>{e.material_name}</TableCell>
                   <TableCell className="text-right font-mono">{e.quantity.toLocaleString()}</TableCell>
+                  <TableCell className="text-muted-foreground">{e.material_unit}</TableCell>
+                  <TableCell className="font-mono text-xs">{e.lot_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                   <TableCell>{e.person_name}</TableCell>
                 </TableRow>

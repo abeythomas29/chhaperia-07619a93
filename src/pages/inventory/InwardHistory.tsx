@@ -11,6 +11,7 @@ interface StockEntry {
   raw_material_id: string;
   quantity: number;
   date: string;
+  lot_number: string | null;
   notes: string | null;
   created_at: string;
   material_name?: string;
@@ -65,18 +66,20 @@ export default function InwardHistory() {
                 <TableHead>Material</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Unit</TableHead>
+                <TableHead>Lot No.</TableHead>
                 <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {entries.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No entries yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No entries yet</TableCell></TableRow>
               ) : entries.map((e) => (
                 <TableRow key={e.id}>
-                  <TableCell>{format(new Date(e.date), "dd MMM yyyy")}</TableCell>
+                  <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
                   <TableCell className="font-medium">{e.material_name}</TableCell>
                   <TableCell className="text-right font-mono">{e.quantity.toLocaleString()}</TableCell>
                   <TableCell>{e.material_unit}</TableCell>
+                  <TableCell className="font-mono text-xs">{e.lot_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                 </TableRow>
               ))}

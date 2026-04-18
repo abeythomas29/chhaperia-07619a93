@@ -25,6 +25,7 @@ export default function InwardEntry() {
   const [materialId, setMaterialId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [lotNumber, setLotNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -52,9 +53,10 @@ export default function InwardEntry() {
       raw_material_id: materialId,
       quantity: Number(quantity),
       date,
+      lot_number: lotNumber.trim() || null,
       notes: notes || null,
       added_by: user.id,
-    });
+    } as any);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -67,6 +69,7 @@ export default function InwardEntry() {
       setMaterialId("");
       setQuantity("");
       setDate(format(new Date(), "yyyy-MM-dd"));
+      setLotNumber("");
       setNotes("");
       setSubmitted(false);
       fetchMaterials();
@@ -162,6 +165,11 @@ export default function InwardEntry() {
           <div>
             <Label>Quantity</Label>
             <Input type="number" min="0" step="0.01" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="0" />
+          </div>
+
+          <div>
+            <Label>Lot Number</Label>
+            <Input value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="e.g. LOT-2025-001" />
           </div>
 
           <div>

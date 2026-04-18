@@ -248,6 +248,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          lot_number: string | null
           notes: string | null
           quantity: number
           raw_material_id: string
@@ -257,6 +258,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          lot_number?: string | null
           notes?: string | null
           quantity?: number
           raw_material_id: string
@@ -266,6 +268,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          lot_number?: string | null
           notes?: string | null
           quantity?: number
           raw_material_id?: string
