@@ -28,6 +28,8 @@ interface StockEntry {
   quantity: number;
   date: string;
   lot_number: string | null;
+  supplier: string | null;
+  pallets: number | null;
   notes: string | null;
   added_by: string;
   created_at: string;
@@ -55,6 +57,8 @@ export default function RawMaterials() {
   const [stockQty, setStockQty] = useState("");
   const [stockDate, setStockDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [stockLot, setStockLot] = useState("");
+  const [stockSupplier, setStockSupplier] = useState("");
+  const [stockPallets, setStockPallets] = useState("");
   const [stockNotes, setStockNotes] = useState("");
 
   const fetchData = async () => {
@@ -131,6 +135,8 @@ export default function RawMaterials() {
       quantity: Number(stockQty),
       date: stockDate,
       lot_number: stockLot.trim() || null,
+      supplier: stockSupplier.trim() || null,
+      pallets: stockPallets ? Number(stockPallets) : null,
       notes: stockNotes || null,
       added_by: user.id,
     } as any);
@@ -140,6 +146,8 @@ export default function RawMaterials() {
     setStockMaterialId("");
     setStockQty("");
     setStockLot("");
+    setStockSupplier("");
+    setStockPallets("");
     setStockNotes("");
     fetchData();
   };
@@ -183,8 +191,16 @@ export default function RawMaterials() {
                   <Input value={stockLot} onChange={(e) => setStockLot(e.target.value)} placeholder="e.g. LOT-2025-001" />
                 </div>
                 <div>
+                  <Label>Supplier / From</Label>
+                  <Input value={stockSupplier} onChange={(e) => setStockSupplier(e.target.value)} placeholder="e.g. Combined Origins Ltd" />
+                </div>
+                <div>
+                  <Label>Pallets / Pieces</Label>
+                  <Input type="number" min="0" step="1" value={stockPallets} onChange={(e) => setStockPallets(e.target.value)} placeholder="e.g. 29" />
+                </div>
+                <div>
                   <Label>Notes (optional)</Label>
-                  <Input value={stockNotes} onChange={(e) => setStockNotes(e.target.value)} placeholder="e.g. Supplier name, invoice #" />
+                  <Input value={stockNotes} onChange={(e) => setStockNotes(e.target.value)} placeholder="e.g. invoice #" />
                 </div>
                 <Button onClick={addStockEntry} className="w-full bg-secondary hover:bg-secondary/90">Add Stock</Button>
               </div>
@@ -265,8 +281,10 @@ export default function RawMaterials() {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Material</TableHead>
+                <TableHead>Supplier</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Unit</TableHead>
+                <TableHead className="text-right">Pallets</TableHead>
                 <TableHead>Lot No.</TableHead>
                 <TableHead>Notes</TableHead>
                 <TableHead>Added By</TableHead>
@@ -274,13 +292,15 @@ export default function RawMaterials() {
             </TableHeader>
             <TableBody>
               {stockEntries.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
               ) : stockEntries.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
                   <TableCell>{e.material_name}</TableCell>
+                  <TableCell>{e.supplier ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono">{e.quantity.toLocaleString()}</TableCell>
                   <TableCell className="text-muted-foreground">{e.material_unit}</TableCell>
+                  <TableCell className="text-right font-mono">{e.pallets ?? "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{e.lot_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                   <TableCell>{e.person_name}</TableCell>

@@ -26,6 +26,8 @@ export default function InwardEntry() {
   const [quantity, setQuantity] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [lotNumber, setLotNumber] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [pallets, setPallets] = useState("");
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -54,6 +56,8 @@ export default function InwardEntry() {
       quantity: Number(quantity),
       date,
       lot_number: lotNumber.trim() || null,
+      supplier: supplier.trim() || null,
+      pallets: pallets ? Number(pallets) : null,
       notes: notes || null,
       added_by: user.id,
     } as any);
@@ -70,6 +74,8 @@ export default function InwardEntry() {
       setQuantity("");
       setDate(format(new Date(), "yyyy-MM-dd"));
       setLotNumber("");
+      setSupplier("");
+      setPallets("");
       setNotes("");
       setSubmitted(false);
       fetchMaterials();
@@ -168,13 +174,23 @@ export default function InwardEntry() {
           </div>
 
           <div>
+            <Label>Supplier / From</Label>
+            <Input value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="e.g. Combined Origins Ltd" />
+          </div>
+
+          <div>
+            <Label>Pallets / Pieces</Label>
+            <Input type="number" min="0" step="1" value={pallets} onChange={(e) => setPallets(e.target.value)} placeholder="e.g. 29" />
+          </div>
+
+          <div>
             <Label>Lot Number</Label>
             <Input value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="e.g. LOT-2025-001" />
           </div>
 
           <div>
             <Label>Notes (optional)</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Supplier name, invoice #" />
+            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. invoice #" />
           </div>
 
           <Button type="submit" disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90 text-lg py-6">

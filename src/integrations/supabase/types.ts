@@ -250,8 +250,10 @@ export type Database = {
           id: string
           lot_number: string | null
           notes: string | null
+          pallets: number | null
           quantity: number
           raw_material_id: string
+          supplier: string | null
         }
         Insert: {
           added_by: string
@@ -260,8 +262,10 @@ export type Database = {
           id?: string
           lot_number?: string | null
           notes?: string | null
+          pallets?: number | null
           quantity?: number
           raw_material_id: string
+          supplier?: string | null
         }
         Update: {
           added_by?: string
@@ -270,8 +274,10 @@ export type Database = {
           id?: string
           lot_number?: string | null
           notes?: string | null
+          pallets?: number | null
           quantity?: number
           raw_material_id?: string
+          supplier?: string | null
         }
         Relationships: [
           {
