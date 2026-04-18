@@ -28,6 +28,8 @@ interface StockEntry {
   quantity: number;
   date: string;
   lot_number: string | null;
+  supplier: string | null;
+  pallets: number | null;
   notes: string | null;
   added_by: string;
   created_at: string;
