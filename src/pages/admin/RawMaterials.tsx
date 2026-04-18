@@ -135,6 +135,8 @@ export default function RawMaterials() {
       quantity: Number(stockQty),
       date: stockDate,
       lot_number: stockLot.trim() || null,
+      supplier: stockSupplier.trim() || null,
+      pallets: stockPallets ? Number(stockPallets) : null,
       notes: stockNotes || null,
       added_by: user.id,
     } as any);
@@ -144,6 +146,8 @@ export default function RawMaterials() {
     setStockMaterialId("");
     setStockQty("");
     setStockLot("");
+    setStockSupplier("");
+    setStockPallets("");
     setStockNotes("");
     fetchData();
   };
