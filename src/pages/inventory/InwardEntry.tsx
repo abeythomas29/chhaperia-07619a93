@@ -26,6 +26,8 @@ export default function InwardEntry() {
   const [quantity, setQuantity] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [lotNumber, setLotNumber] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [pallets, setPallets] = useState("");
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
