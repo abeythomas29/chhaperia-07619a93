@@ -54,6 +54,19 @@ export default function RawMaterials() {
   const [editName, setEditName] = useState("");
   const [editUnit, setEditUnit] = useState("");
 
+  // Stock entry edit/delete state
+  const [editEntryOpen, setEditEntryOpen] = useState(false);
+  const [editEntry, setEditEntry] = useState<StockEntry | null>(null);
+  const [eMaterialId, setEMaterialId] = useState("");
+  const [eQty, setEQty] = useState("");
+  const [eDate, setEDate] = useState("");
+  const [eLot, setELot] = useState("");
+  const [eSupplier, setESupplier] = useState("");
+  const [ePallets, setEPallets] = useState("");
+  const [eThickness, setEThickness] = useState("");
+  const [eNotes, setENotes] = useState("");
+  const [deleteEntryId, setDeleteEntryId] = useState<string | null>(null);
+
   const [stockMaterialId, setStockMaterialId] = useState("");
   const [stockQty, setStockQty] = useState("");
   const [stockDate, setStockDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -161,6 +174,47 @@ export default function RawMaterials() {
     setEditName(m.name);
     setEditUnit(m.unit);
     setEditOpen(true);
+  };
+
+  const openEditEntry = (e: StockEntry) => {
+    setEditEntry(e);
+    setEMaterialId(e.raw_material_id);
+    setEQty(String(e.quantity));
+    setEDate(e.date);
+    setELot(e.lot_number ?? "");
+    setESupplier(e.supplier ?? "");
+    setEPallets(e.pallets != null ? String(e.pallets) : "");
+    setEThickness(e.thickness_mm != null ? String(e.thickness_mm) : "");
+    setENotes(e.notes ?? "");
+    setEditEntryOpen(true);
+  };
+
+  const saveEntryEdit = async () => {
+    if (!editEntry || !eMaterialId || !eQty) return;
+    const { error } = await supabase.from("raw_material_stock_entries").update({
+      raw_material_id: eMaterialId,
+      quantity: Number(eQty),
+      date: eDate,
+      lot_number: eLot.trim() || null,
+      supplier: eSupplier.trim() || null,
+      pallets: ePallets ? Number(ePallets) : null,
+      thickness_mm: eThickness ? Number(eThickness) : null,
+      notes: eNotes || null,
+    } as any).eq("id", editEntry.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Stock entry updated" });
+    setEditEntryOpen(false);
+    setEditEntry(null);
+    fetchData();
+  };
+
+  const confirmDeleteEntry = async () => {
+    if (!deleteEntryId) return;
+    const { error } = await supabase.from("raw_material_stock_entries").delete().eq("id", deleteEntryId);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Stock entry deleted" });
+    setDeleteEntryId(null);
+    fetchData();
   };
 
   return (
@@ -297,11 +351,12 @@ export default function RawMaterials() {
                 <TableHead>Lot No.</TableHead>
                 <TableHead>Notes</TableHead>
                 <TableHead>Added By</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {stockEntries.length === 0 ? (
-                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
               ) : stockEntries.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
@@ -314,6 +369,10 @@ export default function RawMaterials() {
                   <TableCell className="font-mono text-xs">{e.lot_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                   <TableCell>{e.person_name}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => openEditEntry(e)}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => setDeleteEntryId(e.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -355,6 +414,44 @@ export default function RawMaterials() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Stock Entry Dialog */}
+      <Dialog open={editEntryOpen} onOpenChange={setEditEntryOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Stock Entry</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Raw Material</Label>
+              <Select value={eMaterialId} onValueChange={setEMaterialId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{materials.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} ({m.unit})</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Quantity</Label><Input type="number" min="0" step="0.01" value={eQty} onChange={(e) => setEQty(e.target.value)} /></div>
+            <div><Label>Date</Label><Input type="date" value={eDate} onChange={(e) => setEDate(e.target.value)} /></div>
+            <div><Label>Lot Number</Label><Input value={eLot} onChange={(e) => setELot(e.target.value)} /></div>
+            <div><Label>Supplier / From</Label><Input value={eSupplier} onChange={(e) => setESupplier(e.target.value)} /></div>
+            <div><Label>Pallets / Pieces</Label><Input type="number" min="0" step="1" value={ePallets} onChange={(e) => setEPallets(e.target.value)} /></div>
+            <div><Label>Thickness (mm)</Label><Input type="number" min="0" step="0.001" value={eThickness} onChange={(e) => setEThickness(e.target.value)} /></div>
+            <div><Label>Notes</Label><Input value={eNotes} onChange={(e) => setENotes(e.target.value)} /></div>
+            <Button onClick={saveEntryEdit} className="w-full bg-secondary hover:bg-secondary/90">Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Stock Entry Confirm */}
+      <AlertDialog open={!!deleteEntryId} onOpenChange={(open) => !open && setDeleteEntryId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Stock Entry?</AlertDialogTitle>
+            <AlertDialogDescription>This will remove the inward record. The raw material's current stock will not be auto-adjusted.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteEntry} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
