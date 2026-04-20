@@ -54,6 +54,19 @@ export default function RawMaterials() {
   const [editName, setEditName] = useState("");
   const [editUnit, setEditUnit] = useState("");
 
+  // Stock entry edit/delete state
+  const [editEntryOpen, setEditEntryOpen] = useState(false);
+  const [editEntry, setEditEntry] = useState<StockEntry | null>(null);
+  const [eMaterialId, setEMaterialId] = useState("");
+  const [eQty, setEQty] = useState("");
+  const [eDate, setEDate] = useState("");
+  const [eLot, setELot] = useState("");
+  const [eSupplier, setESupplier] = useState("");
+  const [ePallets, setEPallets] = useState("");
+  const [eThickness, setEThickness] = useState("");
+  const [eNotes, setENotes] = useState("");
+  const [deleteEntryId, setDeleteEntryId] = useState<string | null>(null);
+
   const [stockMaterialId, setStockMaterialId] = useState("");
   const [stockQty, setStockQty] = useState("");
   const [stockDate, setStockDate] = useState(format(new Date(), "yyyy-MM-dd"));
