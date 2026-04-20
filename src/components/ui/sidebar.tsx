@@ -88,30 +88,6 @@ const SidebarProvider = React.forwardRef<
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toggleSidebar]);
 
-  // Touch gesture handling for swipe to open/close
-  const [touchStart, setTouchStart] = React.useState<number | null>(null);
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStart === null) return;
-    const touchEnd = e.changedTouches[0].clientX;
-    const distance = touchEnd - touchStart;
-    const isSwipeRight = distance > 50;
-    const isSwipeLeft = distance < -50;
-
-    if (isMobile) {
-      if (isSwipeRight && !openMobile && touchStart < 40) {
-        // Swipe right from the left edge
-        setOpenMobile(true);
-      } else if (isSwipeLeft && openMobile) {
-        // Swipe left anywhere when open
-        setOpenMobile(false);
-      }
-    }
-    setTouchStart(null);
-  };
-
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
   const state = open ? "expanded" : "collapsed";
@@ -133,8 +109,6 @@ const SidebarProvider = React.forwardRef<
     <SidebarContext.Provider value={contextValue}>
       <TooltipProvider delayDuration={0}>
         <div
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH,
@@ -522,7 +496,7 @@ const SidebarMenuAction = React.forwardRef<
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-        "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
+          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
         className,
       )}
       {...props}
