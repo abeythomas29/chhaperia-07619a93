@@ -176,6 +176,47 @@ export default function RawMaterials() {
     setEditOpen(true);
   };
 
+  const openEditEntry = (e: StockEntry) => {
+    setEditEntry(e);
+    setEMaterialId(e.raw_material_id);
+    setEQty(String(e.quantity));
+    setEDate(e.date);
+    setELot(e.lot_number ?? "");
+    setESupplier(e.supplier ?? "");
+    setEPallets(e.pallets != null ? String(e.pallets) : "");
+    setEThickness(e.thickness_mm != null ? String(e.thickness_mm) : "");
+    setENotes(e.notes ?? "");
+    setEditEntryOpen(true);
+  };
+
+  const saveEntryEdit = async () => {
+    if (!editEntry || !eMaterialId || !eQty) return;
+    const { error } = await supabase.from("raw_material_stock_entries").update({
+      raw_material_id: eMaterialId,
+      quantity: Number(eQty),
+      date: eDate,
+      lot_number: eLot.trim() || null,
+      supplier: eSupplier.trim() || null,
+      pallets: ePallets ? Number(ePallets) : null,
+      thickness_mm: eThickness ? Number(eThickness) : null,
+      notes: eNotes || null,
+    } as any).eq("id", editEntry.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Stock entry updated" });
+    setEditEntryOpen(false);
+    setEditEntry(null);
+    fetchData();
+  };
+
+  const confirmDeleteEntry = async () => {
+    if (!deleteEntryId) return;
+    const { error } = await supabase.from("raw_material_stock_entries").delete().eq("id", deleteEntryId);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Stock entry deleted" });
+    setDeleteEntryId(null);
+    fetchData();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
