@@ -254,6 +254,7 @@ export type Database = {
           quantity: number
           raw_material_id: string
           supplier: string | null
+          thickness_mm: number | null
         }
         Insert: {
           added_by: string
@@ -266,6 +267,7 @@ export type Database = {
           quantity?: number
           raw_material_id: string
           supplier?: string | null
+          thickness_mm?: number | null
         }
         Update: {
           added_by?: string
@@ -278,6 +280,7 @@ export type Database = {
           quantity?: number
           raw_material_id?: string
           supplier?: string | null
+          thickness_mm?: number | null
         }
         Relationships: [
           {

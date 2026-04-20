@@ -30,6 +30,7 @@ interface StockEntry {
   lot_number: string | null;
   supplier: string | null;
   pallets: number | null;
+  thickness_mm: number | null;
   notes: string | null;
   added_by: string;
   created_at: string;
@@ -59,6 +60,7 @@ export default function RawMaterials() {
   const [stockLot, setStockLot] = useState("");
   const [stockSupplier, setStockSupplier] = useState("");
   const [stockPallets, setStockPallets] = useState("");
+  const [stockThickness, setStockThickness] = useState("");
   const [stockNotes, setStockNotes] = useState("");
 
   const fetchData = async () => {
@@ -137,6 +139,7 @@ export default function RawMaterials() {
       lot_number: stockLot.trim() || null,
       supplier: stockSupplier.trim() || null,
       pallets: stockPallets ? Number(stockPallets) : null,
+      thickness_mm: stockThickness ? Number(stockThickness) : null,
       notes: stockNotes || null,
       added_by: user.id,
     } as any);
@@ -148,6 +151,7 @@ export default function RawMaterials() {
     setStockLot("");
     setStockSupplier("");
     setStockPallets("");
+    setStockThickness("");
     setStockNotes("");
     fetchData();
   };
@@ -197,6 +201,10 @@ export default function RawMaterials() {
                 <div>
                   <Label>Pallets / Pieces</Label>
                   <Input type="number" min="0" step="1" value={stockPallets} onChange={(e) => setStockPallets(e.target.value)} placeholder="e.g. 29" />
+                </div>
+                <div>
+                  <Label>Thickness (mm, optional)</Label>
+                  <Input type="number" min="0" step="0.001" value={stockThickness} onChange={(e) => setStockThickness(e.target.value)} placeholder="e.g. 0.13" />
                 </div>
                 <div>
                   <Label>Notes (optional)</Label>
@@ -285,6 +293,7 @@ export default function RawMaterials() {
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Pallets</TableHead>
+                <TableHead className="text-right">Thickness</TableHead>
                 <TableHead>Lot No.</TableHead>
                 <TableHead>Notes</TableHead>
                 <TableHead>Added By</TableHead>
@@ -292,7 +301,7 @@ export default function RawMaterials() {
             </TableHeader>
             <TableBody>
               {stockEntries.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">No stock entries yet</TableCell></TableRow>
               ) : stockEntries.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
@@ -301,6 +310,7 @@ export default function RawMaterials() {
                   <TableCell className="text-right font-mono">{e.quantity.toLocaleString()}</TableCell>
                   <TableCell className="text-muted-foreground">{e.material_unit}</TableCell>
                   <TableCell className="text-right font-mono">{e.pallets ?? "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{e.thickness_mm != null ? `${e.thickness_mm} mm` : "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{e.lot_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                   <TableCell>{e.person_name}</TableCell>

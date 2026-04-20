@@ -14,6 +14,7 @@ interface StockEntry {
   lot_number: string | null;
   supplier: string | null;
   pallets: number | null;
+  thickness_mm: number | null;
   notes: string | null;
   created_at: string;
   material_name?: string;
@@ -70,13 +71,14 @@ export default function InwardHistory() {
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Pallets</TableHead>
+                <TableHead className="text-right">Thickness</TableHead>
                 <TableHead>Lot No.</TableHead>
                 <TableHead>Notes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {entries.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No entries yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No entries yet</TableCell></TableRow>
               ) : entries.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
@@ -85,6 +87,7 @@ export default function InwardHistory() {
                   <TableCell className="text-right font-mono">{e.quantity.toLocaleString()}</TableCell>
                   <TableCell>{e.material_unit}</TableCell>
                   <TableCell className="text-right font-mono">{e.pallets ?? "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{e.thickness_mm != null ? `${e.thickness_mm} mm` : "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{e.lot_number ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{e.notes ?? "—"}</TableCell>
                 </TableRow>

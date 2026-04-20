@@ -28,6 +28,7 @@ export default function InwardEntry() {
   const [lotNumber, setLotNumber] = useState("");
   const [supplier, setSupplier] = useState("");
   const [pallets, setPallets] = useState("");
+  const [thickness, setThickness] = useState("");
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -58,6 +59,7 @@ export default function InwardEntry() {
       lot_number: lotNumber.trim() || null,
       supplier: supplier.trim() || null,
       pallets: pallets ? Number(pallets) : null,
+      thickness_mm: thickness ? Number(thickness) : null,
       notes: notes || null,
       added_by: user.id,
     } as any);
@@ -76,6 +78,7 @@ export default function InwardEntry() {
       setLotNumber("");
       setSupplier("");
       setPallets("");
+      setThickness("");
       setNotes("");
       setSubmitted(false);
       fetchMaterials();
@@ -186,6 +189,11 @@ export default function InwardEntry() {
           <div>
             <Label>Lot Number</Label>
             <Input value={lotNumber} onChange={(e) => setLotNumber(e.target.value)} placeholder="e.g. LOT-2025-001" />
+          </div>
+
+          <div>
+            <Label>Thickness (mm, optional)</Label>
+            <Input type="number" min="0" step="0.001" value={thickness} onChange={(e) => setThickness(e.target.value)} placeholder="e.g. 0.13" />
           </div>
 
           <div>
