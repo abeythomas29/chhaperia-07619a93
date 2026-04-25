@@ -4,9 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Package, Search, ShoppingCart, Plus, Boxes, Pencil, Trash2 } from "lucide-react";
+import { Package, Search, Plus, Boxes, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -41,7 +40,6 @@ export default function InventoryView() {
   const [materials, setMaterials] = useState<RawMaterial[]>([]);
   const [products, setProducts] = useState<FinishedProduct[]>([]);
   const [search, setSearch] = useState("");
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -236,14 +234,6 @@ export default function InventoryView() {
                   <TableCell><Badge variant={m.status === "active" ? "default" : "secondary"}>{m.status}</Badge></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={m.status !== "active" || m.current_stock <= 0}
-                        onClick={() => navigate("/inventory/sales", { state: { materialId: m.id, unit: m.unit } })}
-                      >
-                        <ShoppingCart className="h-3 w-3 mr-1" /> Sell
-                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => openEdit(m)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -278,12 +268,11 @@ export default function InventoryView() {
                 <TableHead>Product Code</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Available Stock</TableHead>
-                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProducts.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No products found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">No products found</TableCell></TableRow>
               ) : filteredProducts.map((p) => (
                 <TableRow key={p.product_code_id}>
                   <TableCell className="font-medium">{p.code}</TableCell>
@@ -292,16 +281,6 @@ export default function InventoryView() {
                     <span className={p.available <= 0 ? "text-muted-foreground" : ""}>
                       {p.available.toLocaleString()}
                     </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={p.available <= 0}
-                      onClick={() => navigate("/inventory/sales", { state: { productId: p.product_code_id, unit: p.unit } })}
-                    >
-                      <ShoppingCart className="h-3 w-3 mr-1" /> Sell
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
