@@ -7,6 +7,7 @@ import {
   LogOut,
   Warehouse,
   Boxes,
+  ShoppingCart,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +33,7 @@ const mainItems = [
   { title: "Stock Management", url: "/admin/stock", icon: Warehouse },
   { title: "Products", url: "/admin/products", icon: Package },
   { title: "Inventory", url: "/admin/inventory", icon: Boxes },
+  { title: "Sales", url: "/admin/sales", icon: ShoppingCart },
   { title: "Clients", url: "/admin/clients", icon: Building2 },
   { title: "User Management", url: "/admin/users", icon: Users },
 ];
