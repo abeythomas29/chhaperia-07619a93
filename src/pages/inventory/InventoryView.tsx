@@ -4,9 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Package, Search, ShoppingCart } from "lucide-react";
+import { Package, Search, ShoppingCart, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 interface RawMaterial {
   id: string;
@@ -20,12 +24,31 @@ export default function InventoryView() {
   const [materials, setMaterials] = useState<RawMaterial[]>([]);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [addOpen, setAddOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newUnit, setNewUnit] = useState("kg");
+  const [adding, setAdding] = useState(false);
 
-  useEffect(() => {
-    supabase.from("raw_materials").select("*").order("name").then(({ data }) => {
-      setMaterials(data ?? []);
-    });
-  }, []);
+  const fetchMaterials = async () => {
+    const { data } = await supabase.from("raw_materials").select("*").order("name");
+    setMaterials(data ?? []);
+  };
+
+  useEffect(() => { fetchMaterials(); }, []);
+
+  const addMaterial = async () => {
+    if (!newName.trim()) return;
+    setAdding(true);
+    const { error } = await supabase.from("raw_materials").insert({ name: newName.trim(), unit: newUnit });
+    setAdding(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Material added" });
+    setAddOpen(false);
+    setNewName("");
+    setNewUnit("kg");
+    await fetchMaterials();
+  };
 
   const filtered = materials.filter((m) =>
     m.name.toLowerCase().includes(search.toLowerCase())
@@ -33,7 +56,41 @@ export default function InventoryView() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Inventory</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Inventory</h1>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-secondary hover:bg-secondary/90">
+              <Plus className="h-4 w-4 mr-1" /> Add Raw Material
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add Raw Material</DialogTitle></DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. ALUMINIUM FOIL 009MIC" />
+              </div>
+              <div>
+                <Label>Unit</Label>
+                <Select value={newUnit} onValueChange={setNewUnit}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                    <SelectItem value="meters">Meters</SelectItem>
+                    <SelectItem value="rolls">Rolls</SelectItem>
+                    <SelectItem value="pieces">Pieces</SelectItem>
+                    <SelectItem value="liters">Liters</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={addMaterial} disabled={adding || !newName.trim()} className="w-full bg-secondary hover:bg-secondary/90">
+                {adding ? "Adding…" : "Add Material"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
