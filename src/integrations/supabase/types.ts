@@ -368,6 +368,60 @@ export type Database = {
         }
         Relationships: []
       }
+      sales: {
+        Row: {
+          client_id: string
+          created_at: string
+          date: string
+          id: string
+          item_type: string
+          notes: string | null
+          price_per_unit: number
+          product_code_id: string | null
+          quantity: number
+          raw_material_id: string | null
+          sold_by: string
+          thickness_mm: number | null
+          total_amount: number | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          date?: string
+          id?: string
+          item_type: string
+          notes?: string | null
+          price_per_unit?: number
+          product_code_id?: string | null
+          quantity: number
+          raw_material_id?: string | null
+          sold_by: string
+          thickness_mm?: number | null
+          total_amount?: number | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          item_type?: string
+          notes?: string | null
+          price_per_unit?: number
+          product_code_id?: string | null
+          quantity?: number
+          raw_material_id?: string | null
+          sold_by?: string
+          thickness_mm?: number | null
+          total_amount?: number | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_issues: {
         Row: {
           client_id: string
