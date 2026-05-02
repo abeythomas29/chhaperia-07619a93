@@ -340,6 +340,14 @@ export default function ProductionEntry() {
                 {isWaterBlocking ? (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
+                      <Label className="text-xs">Tensile Strength</Label>
+                      <Input type="number" min="0" step="0.01" value={form.tensile_strength} onChange={(e) => setForm({ ...form, tensile_strength: e.target.value })} placeholder="e.g. 45.0" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Elongation</Label>
+                      <Input type="number" min="0" step="0.01" value={form.elongation} onChange={(e) => setForm({ ...form, elongation: e.target.value })} placeholder="e.g. 15.0" />
+                    </div>
+                    <div>
                       <Label className="text-xs">Swelling Speed</Label>
                       <Input type="number" min="0" step="0.01" value={form.swelling_speed} onChange={(e) => setForm({ ...form, swelling_speed: e.target.value })} placeholder="e.g. 5.2" />
                     </div>
