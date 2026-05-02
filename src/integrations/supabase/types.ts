@@ -144,11 +144,15 @@ export type Database = {
           client_id: string | null
           created_at: string
           date: string
+          elongation: number | null
           id: string
           notes: string | null
           product_code_id: string
           quantity_per_roll: number
           rolls_count: number
+          swelling_height: number | null
+          swelling_speed: number | null
+          tensile_strength: number | null
           thickness_mm: number | null
           total_quantity: number | null
           unit: string
@@ -159,11 +163,15 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           date?: string
+          elongation?: number | null
           id?: string
           notes?: string | null
           product_code_id: string
           quantity_per_roll: number
           rolls_count: number
+          swelling_height?: number | null
+          swelling_speed?: number | null
+          tensile_strength?: number | null
           thickness_mm?: number | null
           total_quantity?: number | null
           unit?: string
@@ -174,11 +182,15 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           date?: string
+          elongation?: number | null
           id?: string
           notes?: string | null
           product_code_id?: string
           quantity_per_roll?: number
           rolls_count?: number
+          swelling_height?: number | null
+          swelling_speed?: number | null
+          tensile_strength?: number | null
           thickness_mm?: number | null
           total_quantity?: number | null
           unit?: string
