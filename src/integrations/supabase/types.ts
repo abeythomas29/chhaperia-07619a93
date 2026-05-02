@@ -437,6 +437,69 @@ export type Database = {
         }
         Relationships: []
       }
+      slitting_entries: {
+        Row: {
+          created_at: string
+          cut_quantity_produced: number
+          cut_width_mm: number
+          date: string
+          id: string
+          notes: string | null
+          product_code_id: string
+          remaining_returned: number
+          slitting_manager_id: string
+          source_quantity: number
+          thickness_mm: number | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cut_quantity_produced: number
+          cut_width_mm: number
+          date?: string
+          id?: string
+          notes?: string | null
+          product_code_id: string
+          remaining_returned?: number
+          slitting_manager_id: string
+          source_quantity: number
+          thickness_mm?: number | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cut_quantity_produced?: number
+          cut_width_mm?: number
+          date?: string
+          id?: string
+          notes?: string | null
+          product_code_id?: string
+          remaining_returned?: number
+          slitting_manager_id?: string
+          source_quantity?: number
+          thickness_mm?: number | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slitting_entries_product_code_id_fkey"
+            columns: ["product_code_id"]
+            isOneToOne: false
+            referencedRelation: "product_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slitting_entries_slitting_manager_id_fkey"
+            columns: ["slitting_manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       stock_issues: {
         Row: {
           client_id: string
@@ -541,8 +604,13 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "super_admin" | "admin" | "worker" | "inventory_manager"
-      signup_department: "worker" | "inventory_manager"
+      app_role:
+        | "super_admin"
+        | "admin"
+        | "worker"
+        | "inventory_manager"
+        | "slitting_manager"
+      signup_department: "worker" | "inventory_manager" | "slitting_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -670,8 +738,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "admin", "worker", "inventory_manager"],
-      signup_department: ["worker", "inventory_manager"],
+      app_role: [
+        "super_admin",
+        "admin",
+        "worker",
+        "inventory_manager",
+        "slitting_manager",
+      ],
+      signup_department: ["worker", "inventory_manager", "slitting_manager"],
     },
   },
 } as const

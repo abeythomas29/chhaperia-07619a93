@@ -19,11 +19,13 @@ type SignupDepartment = Database["public"]["Enums"]["signup_department"];
 const departmentLabels: Record<SignupDepartment, string> = {
   worker: "Production Manager",
   inventory_manager: "Inventory Manager",
+  slitting_manager: "Slitting Manager",
 };
 
 const roleLabels: Record<AppRole, string> = {
   worker: "Production Manager",
   inventory_manager: "Inventory Manager",
+  slitting_manager: "Slitting Manager",
   admin: "Admin",
   super_admin: "Super Admin",
 };
@@ -310,6 +312,7 @@ export default function UserManagement() {
                 <SelectContent>
                    <SelectItem value="worker">Production Manager</SelectItem>
                    <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                  <SelectItem value="slitting_manager">Slitting Manager</SelectItem>
                    <SelectItem value="admin">Admin</SelectItem>
                    <SelectItem value="super_admin">Super Admin</SelectItem>
                  </SelectContent>
@@ -377,6 +380,7 @@ export default function UserManagement() {
                 <SelectContent>
                    <SelectItem value="worker">Production Manager</SelectItem>
                    <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                  <SelectItem value="slitting_manager">Slitting Manager</SelectItem>
                    <SelectItem value="admin">Admin</SelectItem>
                    <SelectItem value="super_admin">Super Admin</SelectItem>
                  </SelectContent>

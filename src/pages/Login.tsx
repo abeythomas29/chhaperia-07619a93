@@ -19,7 +19,7 @@ const signupSchema = z.object({
   employeeId: z.string().trim().min(1, "Employee ID is required").max(50, "Employee ID is too long"),
   email: z.string().trim().email("Enter a valid email address").max(255, "Email is too long"),
   password: z.string().min(6, "Password must be at least 6 characters").max(72, "Password is too long"),
-  requestedDepartment: z.enum(["worker", "inventory_manager"], {
+  requestedDepartment: z.enum(["worker", "inventory_manager", "slitting_manager"], {
     required_error: "Please select a department",
   }),
 });
@@ -32,7 +32,7 @@ export default function Login() {
   const [signupEmployeeId, setSignupEmployeeId] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
-  const [signupDepartment, setSignupDepartment] = useState<"worker" | "inventory_manager">("worker");
+  const [signupDepartment, setSignupDepartment] = useState<"worker" | "inventory_manager" | "slitting_manager">("worker");
   const [submitting, setSubmitting] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const { toast } = useToast();
@@ -48,6 +48,7 @@ export default function Login() {
   if (user && role && role !== "pending") {
     if (role === "worker") return <Navigate to="/worker" replace />;
     if (role === "inventory_manager") return <Navigate to="/inventory" replace />;
+    if (role === "slitting_manager") return <Navigate to="/slitting" replace />;
     return <Navigate to="/admin" replace />;
   }
 
@@ -190,13 +191,14 @@ export default function Login() {
                 </div>
                 <div className="space-y-2">
                   <Label>Requested Department</Label>
-                  <Select value={signupDepartment} onValueChange={(value) => setSignupDepartment(value as "worker" | "inventory_manager") }>
+                  <Select value={signupDepartment} onValueChange={(value) => setSignupDepartment(value as "worker" | "inventory_manager" | "slitting_manager") }>
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="worker">Production Manager</SelectItem>
                       <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
+                      <SelectItem value="slitting_manager">Slitting Manager</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

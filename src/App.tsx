@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import AdminLayout from "./layouts/AdminLayout";
 import WorkerLayout from "./layouts/WorkerLayout";
 import InventoryManagerLayout from "./layouts/InventoryManagerLayout";
+import SlittingManagerLayout from "./layouts/SlittingManagerLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import ProductionLogs from "./pages/admin/ProductionLogs";
 import StockManagement from "./pages/admin/StockManagement";
@@ -23,6 +24,8 @@ import InventoryView from "./pages/inventory/InventoryView";
 import InwardHistory from "./pages/inventory/InwardHistory";
 import SalesEntry from "./pages/inventory/SalesEntry";
 import SalesHistory from "./pages/inventory/SalesHistory";
+import SlittingEntry from "./pages/slitting/SlittingEntry";
+import SlittingHistory from "./pages/slitting/SlittingHistory";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 
@@ -61,6 +64,10 @@ const App = () => (
               <Route path="history" element={<InwardHistory />} />
               <Route path="sales" element={<SalesEntry />} />
               <Route path="sales-history" element={<SalesHistory />} />
+            </Route>
+            <Route path="/slitting" element={<SlittingManagerLayout />}>
+              <Route index element={<SlittingEntry />} />
+              <Route path="history" element={<SlittingHistory />} />
             </Route>
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
