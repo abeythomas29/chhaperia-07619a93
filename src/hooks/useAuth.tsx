@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { z } from "zod";
 
-type AppRole = "super_admin" | "admin" | "worker" | "inventory_manager" | "slitting_manager" | "pending" | null;
-type SignupDepartment = "worker" | "inventory_manager" | "slitting_manager";
+type AppRole = string | null;
+type SignupDepartment = string;
 
 const signUpSchema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255, "Email is too long"),

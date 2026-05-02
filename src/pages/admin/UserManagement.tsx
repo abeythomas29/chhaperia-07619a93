@@ -13,16 +13,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
-type AppRole = Database["public"]["Enums"]["app_role"];
-type SignupDepartment = Database["public"]["Enums"]["signup_department"];
+type AppRole = string;
+type SignupDepartment = string;
 
-const departmentLabels: Record<SignupDepartment, string> = {
+const departmentLabels: Record<string, string> = {
   worker: "Production Manager",
   inventory_manager: "Inventory Manager",
   slitting_manager: "Slitting Manager",
 };
 
-const roleLabels: Record<AppRole, string> = {
+const roleLabels: Record<string, string> = {
   worker: "Production Manager",
   inventory_manager: "Inventory Manager",
   slitting_manager: "Slitting Manager",
@@ -265,7 +265,7 @@ export default function UserManagement() {
                 <TableCell>{u.username}</TableCell>
                 <TableCell>
                   {u.role ? (
-                    <Badge variant="outline">{u.role === "worker" ? "Production Manager" : u.role === "inventory_manager" ? "Inventory Manager" : u.role}</Badge>
+                    <Badge variant="outline">{roleLabels[u.role!] ?? u.role}</Badge>
                   ) : (
                     <Badge variant="destructive">Pending Approval</Badge>
                   )}
