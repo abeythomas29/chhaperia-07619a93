@@ -3,15 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { z } from "zod";
 
-type AppRole = "super_admin" | "admin" | "worker" | "inventory_manager" | "pending" | null;
-type SignupDepartment = "worker" | "inventory_manager";
+type AppRole = "super_admin" | "admin" | "worker" | "inventory_manager" | "slitting_manager" | "pending" | null;
+type SignupDepartment = "worker" | "inventory_manager" | "slitting_manager";
 
 const signUpSchema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255, "Email is too long"),
   password: z.string().min(6, "Password must be at least 6 characters").max(72, "Password is too long"),
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long"),
   employeeId: z.string().trim().min(1, "Employee ID is required").max(50, "Employee ID is too long"),
-  requestedDepartment: z.enum(["worker", "inventory_manager"]),
+  requestedDepartment: z.enum(["worker", "inventory_manager", "slitting_manager"]),
 });
 
 interface AuthContextType {
@@ -28,6 +28,7 @@ interface AuthContextType {
   isPending: boolean;
   isWorker: boolean;
   isInventoryManager: boolean;
+  isSlittingManager: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -150,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isWorker: role === "worker",
         isPending: role === "pending",
         isInventoryManager: role === "inventory_manager",
+        isSlittingManager: role === "slitting_manager",
       }}
     >
       {children}
