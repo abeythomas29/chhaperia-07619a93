@@ -42,6 +42,7 @@ export default function ProductionEntry() {
     quantity_per_roll: "",
     unit: "meters",
     thickness_mm: "",
+    notes: "",
   });
 
   const [newProductCode, setNewProductCode] = useState("");
@@ -122,6 +123,9 @@ export default function ProductionEntry() {
     if (form.thickness_mm) {
       insertPayload.thickness_mm = Number(form.thickness_mm);
     }
+    if (form.notes.trim()) {
+      insertPayload.notes = form.notes.trim();
+    }
 
     const { data: entry, error } = await supabase
       .from("production_entries")
@@ -151,7 +155,7 @@ export default function ProductionEntry() {
 
     setSubmitted(true);
     setTimeout(() => {
-      setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "" });
+      setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", notes: "" });
       setSelectedCategory("");
       setMaterialUsage([]);
       setMaterialsOpen(false);
@@ -308,6 +312,15 @@ export default function ProductionEntry() {
             <p className="text-sm text-muted-foreground">Total Quantity</p>
             <p className="text-3xl font-bold text-primary">{totalQuantity.toLocaleString()} <span className="text-lg font-normal text-muted-foreground">{form.unit}</span></p>
           </div>
+
+         <div>
+           <Label>Notes / Remarks (Optional)</Label>
+           <Input
+             value={form.notes}
+             onChange={(e) => setForm({ ...form, notes: e.target.value })}
+             placeholder="e.g. Single coated, Double coated, etc."
+           />
+         </div>
 
           {/* Optional Raw Material Usage */}
           <Collapsible open={materialsOpen} onOpenChange={setMaterialsOpen}>
