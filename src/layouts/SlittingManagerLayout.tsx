@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function SlittingManagerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isSlittingManager } = useAuth();
-  const { isWorker } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isSlittingManager, isWorker } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -34,7 +33,7 @@ export default function SlittingManagerLayout() {
   ];
 
   if (isWorker) {
-    navItems.push({ to: "/worker", label: "Production", icon: Scissors, end: false });
+    navItems.push({ to: "/worker", label: "Production", icon: ClipboardList, end: false });
   }
 
   return (
