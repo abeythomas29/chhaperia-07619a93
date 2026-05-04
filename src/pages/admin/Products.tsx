@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Search, ChevronRight, ArrowLeft } from "lucide-react";
+import { Layers, Hash } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
@@ -212,38 +213,43 @@ export default function Products() {
           </Select>
         </div>
 
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCategories.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">No categories found</p>
+            <p className="text-center py-8 text-muted-foreground col-span-full">No categories found</p>
           ) : (
             filteredCategories.map((c) => (
               <Card
                 key={c.id}
-                className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all"
+                className="cursor-pointer hover:shadow-lg hover:border-secondary/50 transition-all group"
                 onClick={() => { setSelectedCategory(c); setSearchQuery(""); }}
               >
-                <CardContent className="flex items-center justify-between py-4 px-5">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="font-semibold">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">{codeCountByCategory[c.id] ?? 0} product codes</p>
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="h-10 w-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                      <Layers className="h-5 w-5 text-secondary" />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Badge
+                        variant={c.status === "active" ? "default" : "secondary"}
+                        className="cursor-pointer text-[10px] px-2 py-0.5"
+                        onClick={(e) => { e.stopPropagation(); toggleStatus("product_categories", c.id, c.status); }}
+                      >
+                        {c.status}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={c.status === "active" ? "default" : "secondary"}
-                      className="cursor-pointer"
-                      onClick={(e) => { e.stopPropagation(); toggleStatus("product_categories", c.id, c.status); }}
-                    >
-                      {c.status}
-                    </Badge>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditCategory(c); }}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCatId(c.id); setDeleteCatOpen(true); }}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="font-semibold text-sm leading-tight mb-1 line-clamp-2">{c.name}</h3>
+                  <p className="text-2xl font-bold text-secondary mb-3">{codeCountByCategory[c.id] ?? 0} <span className="text-xs font-normal text-muted-foreground">codes</span></p>
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditCategory(c); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteCatId(c.id); setDeleteCatOpen(true); }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </div>
                 </CardContent>
               </Card>
@@ -321,29 +327,36 @@ export default function Products() {
         </Select>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {filteredCodes.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground">No product codes in this category</p>
+          <p className="text-center py-8 text-muted-foreground col-span-full">No product codes in this category</p>
         ) : (
           filteredCodes.map((c) => (
-            <div key={c.id} className="flex items-center justify-between py-3 px-4 rounded-lg border bg-card">
-              <span className="font-medium">{c.code}</span>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={c.status === "active" ? "default" : "secondary"}
-                  className="cursor-pointer"
-                  onClick={() => toggleStatus("product_codes", c.id, c.status)}
-                >
-                  {c.status}
-                </Badge>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditCode(c)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { setDeleteCodeId(c.id); setDeleteCodeOpen(true); }}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
+            <Card key={c.id} className="group hover:shadow-md hover:border-secondary/30 transition-all">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
+                    <Hash className="h-4 w-4 text-primary" />
+                  </div>
+                  <Badge
+                    variant={c.status === "active" ? "default" : "secondary"}
+                    className="cursor-pointer text-[10px] px-2 py-0.5"
+                    onClick={() => toggleStatus("product_codes", c.id, c.status)}
+                  >
+                    {c.status}
+                  </Badge>
+                </div>
+                <p className="font-semibold text-sm mb-3">{c.code}</p>
+                <div className="flex items-center gap-1 pt-2 border-t border-border opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditCode(c)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { setDeleteCodeId(c.id); setDeleteCodeOpen(true); }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
