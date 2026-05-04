@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 export default function SlittingManagerLayout() {
   const { user, loading, signOut, profileName, isAdmin, isSlittingManager } = useAuth();
+  const { isWorker } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -31,6 +32,10 @@ export default function SlittingManagerLayout() {
     { to: "/slitting", label: "New Slitting", icon: Scissors, end: true },
     { to: "/slitting/history", label: "My History", icon: History, end: false },
   ];
+
+  if (isWorker) {
+    navItems.push({ to: "/worker", label: "Production", icon: Scissors, end: false });
+  }
 
   return (
     <div className="min-h-screen bg-background">
