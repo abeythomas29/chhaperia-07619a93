@@ -6,6 +6,7 @@ import { z } from "zod";
 type AppRole = string | null;
 type SignupDepartment = string;
 
+
 const signUpSchema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255, "Email is too long"),
   password: z.string().min(6, "Password must be at least 6 characters").max(72, "Password is too long"),
@@ -18,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: AppRole;
+  roles: string[];
   profileName: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -29,6 +31,7 @@ interface AuthContextType {
   isWorker: boolean;
   isInventoryManager: boolean;
   isSlittingManager: boolean;
+  hasRole: (r: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,17 +40,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const [profileName, setProfileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string, retries = 3) => {
-    const { data } = await supabase.rpc("get_user_role", { _user_id: userId });
-    if (data) {
-      setRole(data as AppRole);
+  const fetchRoles = async (userId: string, retries = 3) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    if (data && data.length > 0) {
+      const userRoles = data.map((r) => r.role);
+      setRoles(userRoles);
+      const priority = ["super_admin", "admin", "worker", "inventory_manager", "slitting_manager"];
+      const primary = priority.find((p) => userRoles.includes(p)) ?? userRoles[0];
+      setRole(primary);
     } else if (retries > 0) {
-      setTimeout(() => fetchRole(userId, retries - 1), 1000);
+      setTimeout(() => fetchRoles(userId, retries - 1), 1000);
     } else {
       setRole("pending");
+      setRoles([]);
     }
   };
 
@@ -71,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         if (session?.user) {
           setTimeout(() => {
-            fetchRole(session.user.id);
+            fetchRoles(session.user.id);
             fetchProfile(session.user.id);
           }, 0);
         } else {
@@ -93,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id);
+        fetchRoles(session.user.id);
         fetchProfile(session.user.id);
       }
       setLoading(false);
@@ -132,8 +144,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setRole(null);
+    setRoles([]);
     setProfileName(null);
   };
+
+  const hasRole = (r: string) => roles.includes(r);
 
   return (
     <AuthContext.Provider
@@ -141,17 +156,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         role,
+        roles,
         profileName,
         loading,
         signIn,
         signUp,
         signOut,
-        isAdmin: role === "admin" || role === "super_admin",
-        isSuperAdmin: role === "super_admin",
-        isWorker: role === "worker",
-        isPending: role === "pending",
-        isInventoryManager: role === "inventory_manager",
-        isSlittingManager: role === "slitting_manager",
+        isAdmin: roles.includes("admin") || roles.includes("super_admin"),
+        isSuperAdmin: roles.includes("super_admin"),
+        isWorker: roles.includes("worker"),
+        isPending: role === "pending" || (roles.length === 0 && !loading),
+        isInventoryManager: roles.includes("inventory_manager"),
+        isSlittingManager: roles.includes("slitting_manager"),
+        hasRole,
       }}
     >
       {children}
