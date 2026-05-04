@@ -1,12 +1,12 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Scissors, History, LogOut, Loader2 } from "lucide-react";
+import { Scissors, History, LogOut, Loader2, ClipboardList } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function SlittingManagerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isSlittingManager } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isSlittingManager, isWorker } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -24,13 +24,17 @@ export default function SlittingManagerLayout() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (isAdmin) return <Navigate to="/admin" replace />;
+  if (!isSlittingManager && isAdmin) return <Navigate to="/admin" replace />;
   if (!isSlittingManager) return <Navigate to="/login" replace />;
 
   const navItems = [
     { to: "/slitting", label: "New Slitting", icon: Scissors, end: true },
     { to: "/slitting/history", label: "My History", icon: History, end: false },
   ];
+
+  if (isWorker) {
+    navItems.push({ to: "/worker", label: "Production", icon: ClipboardList, end: false });
+  }
 
   return (
     <div className="min-h-screen bg-background">

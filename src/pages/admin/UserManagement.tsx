@@ -9,12 +9,8 @@ import { Pencil, Trash2, KeyRound, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import type { Database } from "@/integrations/supabase/types";
-
-type AppRole = string;
-type SignupDepartment = string;
 
 const departmentLabels: Record<string, string> = {
   worker: "Production Manager",
@@ -30,6 +26,14 @@ const roleLabels: Record<string, string> = {
   super_admin: "Super Admin",
 };
 
+const availableRoles = [
+  { value: "worker", label: "Production Manager" },
+  { value: "inventory_manager", label: "Inventory Manager" },
+  { value: "slitting_manager", label: "Slitting Manager" },
+  { value: "admin", label: "Admin" },
+  { value: "super_admin", label: "Super Admin" },
+];
+
 interface UserRow {
   id: string;
   name: string;
@@ -37,8 +41,8 @@ interface UserRow {
   username: string;
   status: string;
   user_id: string;
-  role?: AppRole;
-  requested_department: SignupDepartment;
+  roles: string[];
+  requested_department: string;
 }
 
 export default function UserManagement() {
@@ -47,28 +51,35 @@ export default function UserManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
-  const [approveRole, setApproveRole] = useState<AppRole>("worker");
+  const [approveRoles, setApproveRoles] = useState<string[]>(["worker"]);
+  const [editRoles, setEditRoles] = useState<string[]>([]);
   const [newPassword, setNewPassword] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", employee_id: "", username: "", role: "worker" as AppRole });
-  const [isNewRole, setIsNewRole] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", employee_id: "", username: "" });
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("*").order("name");
     const { data: roles } = await supabase.from("user_roles").select("*");
-    const roleMap = new Map<string, AppRole>();
-    roles?.forEach((r) => roleMap.set(r.user_id, r.role));
-    setUsers((profiles ?? []).map((p) => ({ ...p, role: roleMap.get(p.user_id) })));
+    const roleMap = new Map<string, string[]>();
+    roles?.forEach((r) => {
+      const existing = roleMap.get(r.user_id) ?? [];
+      existing.push(r.role);
+      roleMap.set(r.user_id, existing);
+    });
+    setUsers((profiles ?? []).map((p) => {
+      const userRoles = roleMap.get(p.user_id) ?? [];
+      return { ...p, roles: userRoles };
+    }));
   };
 
   useEffect(() => { fetchUsers(); }, []);
 
   const openEdit = (user: UserRow) => {
     setSelectedUser(user);
-    setEditForm({ name: user.name, employee_id: user.employee_id, username: user.username, role: user.role ?? "worker" });
-    setIsNewRole(!user.role);
+    setEditForm({ name: user.name, employee_id: user.employee_id, username: user.username });
+    setEditRoles(user.roles.length > 0 ? [...user.roles] : ["worker"]);
     setEditDialogOpen(true);
   };
 
@@ -98,23 +109,14 @@ export default function UserManagement() {
       return;
     }
 
-    // Handle role: insert if new, update if existing
-    if (isNewRole) {
+    // Replace all roles: delete existing, insert new
+    await supabase.from("user_roles").delete().eq("user_id", selectedUser.user_id);
+    if (editRoles.length > 0) {
       const { error: roleError } = await supabase
         .from("user_roles")
-        .insert({ user_id: selectedUser.user_id, role: editForm.role } as any);
+        .insert(editRoles.map((r) => ({ user_id: selectedUser.user_id, role: r })) as any);
       if (roleError) {
-        toast({ title: "Error assigning role", description: roleError.message, variant: "destructive" });
-        setSubmitting(false);
-        return;
-      }
-    } else {
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .update({ role: editForm.role } as any)
-        .eq("user_id", selectedUser.user_id);
-      if (roleError) {
-        toast({ title: "Error updating role", description: roleError.message, variant: "destructive" });
+        toast({ title: "Error updating roles", description: roleError.message, variant: "destructive" });
         setSubmitting(false);
         return;
       }
@@ -181,32 +183,49 @@ export default function UserManagement() {
     fetchUsers();
   };
 
-  const pendingUsers = users.filter((u) => !u.role);
-  const approvedUsers = users.filter((u) => !!u.role);
+  const pendingUsers = users.filter((u) => u.roles.length === 0);
+  const approvedUsers = users.filter((u) => u.roles.length > 0);
 
   const openApprove = (user: UserRow) => {
     setSelectedUser(user);
-    setApproveRole(user.requested_department);
+    setApproveRoles([user.requested_department]);
     setApproveDialogOpen(true);
   };
 
   const approveUser = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || approveRoles.length === 0) return;
     setSubmitting(true);
     const { error } = await supabase
       .from("user_roles")
-      .insert({ user_id: selectedUser.user_id, role: approveRole } as any);
+      .insert(approveRoles.map((r) => ({ user_id: selectedUser.user_id, role: r })) as any);
     if (error) {
       toast({ title: "Error approving user", description: error.message, variant: "destructive" });
       setSubmitting(false);
       return;
     }
-    toast({ title: `${selectedUser.name} approved as ${roleLabels[approveRole]}` });
+    toast({ title: `${selectedUser.name} approved with ${approveRoles.map((r) => roleLabels[r] ?? r).join(", ")}` });
     setApproveDialogOpen(false);
     setSelectedUser(null);
     setSubmitting(false);
     fetchUsers();
   };
+
+  const RoleCheckboxes = ({ selected, onChange }: { selected: string[]; onChange: (roles: string[]) => void }) => (
+    <div className="space-y-2 mt-2">
+      {availableRoles.map((r) => (
+        <div key={r.value} className="flex items-center space-x-2">
+          <Checkbox
+            id={`role-${r.value}-${selected.join("")}`}
+            checked={selected.includes(r.value)}
+            onCheckedChange={(checked) => {
+              onChange(checked ? [...selected, r.value] : selected.filter((v) => v !== r.value));
+            }}
+          />
+          <label htmlFor={`role-${r.value}-${selected.join("")}`} className="text-sm cursor-pointer">{r.label}</label>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -252,7 +271,7 @@ export default function UserManagement() {
               <TableHead>Name</TableHead>
               <TableHead>Employee ID</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
+              <TableHead>Roles</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -264,8 +283,12 @@ export default function UserManagement() {
                 <TableCell>{u.employee_id}</TableCell>
                 <TableCell>{u.username}</TableCell>
                 <TableCell>
-                  {u.role ? (
-                    <Badge variant="outline">{roleLabels[u.role!] ?? u.role}</Badge>
+                  {u.roles.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {u.roles.map((r) => (
+                        <Badge key={r} variant="outline">{roleLabels[r] ?? r}</Badge>
+                      ))}
+                    </div>
                   ) : (
                     <Badge variant="destructive">Pending Approval</Badge>
                   )}
@@ -306,19 +329,11 @@ export default function UserManagement() {
             <div><Label>Full Name</Label><Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></div>
             <div><Label>Employee ID</Label><Input value={editForm.employee_id} onChange={(e) => setEditForm({ ...editForm, employee_id: e.target.value })} /></div>
             <div><Label>Email / Username</Label><Input value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} /></div>
-            <div><Label>Role</Label>
-              <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v as AppRole })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                   <SelectItem value="worker">Production Manager</SelectItem>
-                   <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
-                  <SelectItem value="slitting_manager">Slitting Manager</SelectItem>
-                   <SelectItem value="admin">Admin</SelectItem>
-                   <SelectItem value="super_admin">Super Admin</SelectItem>
-                 </SelectContent>
-              </Select>
+            <div>
+              <Label>Roles (select one or more)</Label>
+              <RoleCheckboxes selected={editRoles} onChange={setEditRoles} />
             </div>
-            <Button onClick={updateUser} disabled={submitting} className="w-full bg-secondary hover:bg-secondary/90">Save Changes</Button>
+            <Button onClick={updateUser} disabled={submitting || editRoles.length === 0} className="w-full bg-secondary hover:bg-secondary/90">Save Changes</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -370,24 +385,15 @@ export default function UserManagement() {
         <DialogContent>
           <DialogHeader><DialogTitle>Approve User</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Assign a role to <strong>{selectedUser?.name}</strong> to grant them access.
+            Assign roles to <strong>{selectedUser?.name}</strong> to grant them access. You can select multiple roles.
           </p>
           <div className="space-y-4">
             <div>
-              <Label>Role</Label>
-              <Select value={approveRole} onValueChange={(v) => setApproveRole(v as AppRole)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                   <SelectItem value="worker">Production Manager</SelectItem>
-                   <SelectItem value="inventory_manager">Inventory Manager</SelectItem>
-                  <SelectItem value="slitting_manager">Slitting Manager</SelectItem>
-                   <SelectItem value="admin">Admin</SelectItem>
-                   <SelectItem value="super_admin">Super Admin</SelectItem>
-                 </SelectContent>
-             </Select>
-             </div>
-             <Button onClick={approveUser} disabled={submitting} className="w-full">
-              Approve & Assign Role
+              <Label>Roles (select one or more)</Label>
+              <RoleCheckboxes selected={approveRoles} onChange={setApproveRoles} />
+            </div>
+            <Button onClick={approveUser} disabled={submitting || approveRoles.length === 0} className="w-full">
+              Approve & Assign Roles
             </Button>
           </div>
         </DialogContent>

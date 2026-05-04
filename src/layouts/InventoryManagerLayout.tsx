@@ -24,8 +24,7 @@ export default function InventoryManagerLayout() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (isAdmin) return <Navigate to="/admin" replace />;
-  if (isWorker) return <Navigate to="/worker" replace />;
+  if (!isInventoryManager && isAdmin) return <Navigate to="/admin" replace />;
   if (!isInventoryManager) return <Navigate to="/login" replace />;
 
   const navItems = [

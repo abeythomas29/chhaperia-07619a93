@@ -1,12 +1,12 @@
 import { Outlet, Navigate, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { ClipboardList, History, LogOut, Loader2, Warehouse, Send, Boxes } from "lucide-react";
+import { ClipboardList, History, LogOut, Loader2, Warehouse, Send, Boxes, Scissors } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export default function WorkerLayout() {
-  const { user, loading, signOut, profileName, isAdmin, isWorker } = useAuth();
+  const { user, loading, signOut, profileName, isAdmin, isWorker, isSlittingManager } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -24,8 +24,8 @@ export default function WorkerLayout() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (isAdmin) return <Navigate to="/admin" replace />;
-  if (!isWorker) return <Navigate to="/login" replace />; // pending or no role
+  if (!isWorker && isAdmin) return <Navigate to="/admin" replace />;
+  if (!isWorker) return <Navigate to="/login" replace />;
 
   const navItems = [
     { to: "/worker", label: "New Entry", icon: ClipboardList, end: true },
@@ -34,6 +34,10 @@ export default function WorkerLayout() {
     { to: "/worker/inventory", label: "Inventory", icon: Boxes, end: false },
     { to: "/worker/issues", label: "My Issues", icon: Send, end: false },
   ];
+
+  if (isSlittingManager) {
+    navItems.push({ to: "/slitting", label: "Slitting", icon: Scissors, end: false });
+  }
 
   return (
     <div className="min-h-screen bg-background">
