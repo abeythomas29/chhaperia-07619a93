@@ -229,7 +229,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Invalid step. Use 'export', 'create_users', or 'import'." }), {
+    // Step 4: Reset password for a user
+    if (step === "reset_password") {
+      const { user_id, new_password } = body;
+      const newClient = createClient(NEW_URL, NEW_SERVICE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+      const { error } = await newClient.auth.admin.updateUserById(user_id, {
+        password: new_password,
+      });
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: "Invalid step." }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
