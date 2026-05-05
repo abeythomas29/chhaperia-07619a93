@@ -79,6 +79,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        // If the token refresh failed, sign out cleanly
+        if (_event === 'TOKEN_REFRESHED' && !session) {
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setRole(null);
+          setRoles([]);
+          setProfileName(null);
+          setLoading(false);
+          return;
+        }
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -96,9 +107,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
-        supabase.auth.signOut();
+        supabase.auth.signOut().catch(() => {});
         setSession(null);
         setUser(null);
+        setRole(null);
+        setRoles([]);
+        setProfileName(null);
         setLoading(false);
         return;
       }
