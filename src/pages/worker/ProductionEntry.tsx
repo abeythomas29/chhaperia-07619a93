@@ -342,7 +342,7 @@ export default function ProductionEntry() {
             return (
               <div className="border border-border rounded-lg p-4 space-y-3">
                 <Label className="text-sm font-semibold">Lab Report (Optional)</Label>
-                {isWaterBlocking ? (
+                {isWaterBlocking && !needsSurfaceResistance ? (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs">Tensile Strength</Label>
@@ -371,6 +371,18 @@ export default function ProductionEntry() {
                       <Label className="text-xs">Elongation</Label>
                       <Input type="number" min="0" step="0.01" value={form.elongation} onChange={(e) => setForm({ ...form, elongation: e.target.value })} placeholder="e.g. 15.0" />
                     </div>
+                    {isWaterBlocking && (
+                      <>
+                        <div>
+                          <Label className="text-xs">Swelling Speed</Label>
+                          <Input type="number" min="0" step="0.01" value={form.swelling_speed} onChange={(e) => setForm({ ...form, swelling_speed: e.target.value })} placeholder="e.g. 5.2" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Swelling Height</Label>
+                          <Input type="number" min="0" step="0.01" value={form.swelling_height} onChange={(e) => setForm({ ...form, swelling_height: e.target.value })} placeholder="e.g. 12.5" />
+                        </div>
+                      </>
+                    )}
                     <div className="col-span-2">
                       <Label className="text-xs">Surface Resistance (Ω)</Label>
                       <Input type="number" min="0" step="0.01" value={form.surface_resistance} onChange={(e) => setForm({ ...form, surface_resistance: e.target.value })} placeholder="e.g. 1000" />
