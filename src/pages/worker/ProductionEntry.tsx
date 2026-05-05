@@ -47,6 +47,7 @@ export default function ProductionEntry() {
     swelling_height: "",
     tensile_strength: "",
     elongation: "",
+    surface_resistance: "",
   });
 
   const [newProductCode, setNewProductCode] = useState("");
@@ -134,6 +135,7 @@ export default function ProductionEntry() {
     if (form.swelling_height) insertPayload.swelling_height = Number(form.swelling_height);
     if (form.tensile_strength) insertPayload.tensile_strength = Number(form.tensile_strength);
     if (form.elongation) insertPayload.elongation = Number(form.elongation);
+    if (form.surface_resistance) insertPayload.surface_resistance = Number(form.surface_resistance);
 
     const { data: entry, error } = await supabase
       .from("production_entries")
@@ -163,7 +165,7 @@ export default function ProductionEntry() {
 
     setSubmitted(true);
     setTimeout(() => {
-      setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "" });
+      setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "", surface_resistance: "" });
       setSelectedCategory("");
       setMaterialUsage([]);
       setMaterialsOpen(false);
@@ -334,6 +336,9 @@ export default function ProductionEntry() {
           {selectedCategory && (() => {
             const catName = categories.find(c => c.id === selectedCategory)?.name?.toLowerCase() || "";
             const isWaterBlocking = catName.includes("water block");
+            const selectedCode = productCodes.find(p => p.id === form.product_code_id)?.code?.toUpperCase() || "";
+            const surfaceResistanceCodes = ["CHCNW", "CHCWSCWBT", "CHN-WS", "CHN-TDM", "CHN-TDMS", "CHDSW", "CHSCWWBT", "CHSMWBT-F"];
+            const needsSurfaceResistance = surfaceResistanceCodes.some(c => selectedCode.startsWith(c));
             return (
               <div className="border border-border rounded-lg p-4 space-y-3">
                 <Label className="text-sm font-semibold">Lab Report (Optional)</Label>
@@ -354,6 +359,21 @@ export default function ProductionEntry() {
                     <div>
                       <Label className="text-xs">Swelling Height</Label>
                       <Input type="number" min="0" step="0.01" value={form.swelling_height} onChange={(e) => setForm({ ...form, swelling_height: e.target.value })} placeholder="e.g. 12.5" />
+                    </div>
+                  </div>
+                ) : needsSurfaceResistance ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs">Tensile Strength</Label>
+                      <Input type="number" min="0" step="0.01" value={form.tensile_strength} onChange={(e) => setForm({ ...form, tensile_strength: e.target.value })} placeholder="e.g. 45.0" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Elongation</Label>
+                      <Input type="number" min="0" step="0.01" value={form.elongation} onChange={(e) => setForm({ ...form, elongation: e.target.value })} placeholder="e.g. 15.0" />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Surface Resistance (Ω)</Label>
+                      <Input type="number" min="0" step="0.01" value={form.surface_resistance} onChange={(e) => setForm({ ...form, surface_resistance: e.target.value })} placeholder="e.g. 1000" />
                     </div>
                   </div>
                 ) : (
