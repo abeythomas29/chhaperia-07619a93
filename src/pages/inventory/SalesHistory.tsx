@@ -28,6 +28,7 @@ interface SaleRow {
   client_id: string;
   item_name?: string;
   client_name?: string;
+  sold_by?: string;
 }
 
 export default function SalesHistory() {
