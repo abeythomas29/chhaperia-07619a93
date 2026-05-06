@@ -388,7 +388,8 @@ export type Database = {
       }
       sales: {
         Row: {
-          client_id: string
+          client_id: string | null
+          client_name: string | null
           created_at: string
           date: string
           id: string
@@ -405,7 +406,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
+          client_name?: string | null
           created_at?: string
           date?: string
           id?: string
@@ -422,7 +424,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
+          client_name?: string | null
           created_at?: string
           date?: string
           id?: string

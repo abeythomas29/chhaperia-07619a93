@@ -31,6 +31,8 @@ export default function SalesEntry() {
   const [tab, setTab] = useState<ItemType>("raw_material");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [clientId, setClientId] = useState("");
+  const [manualClientName, setManualClientName] = useState("");
+  const [useManualClient, setUseManualClient] = useState(false);
   const [materialId, setMaterialId] = useState("");
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState("");
@@ -81,6 +83,8 @@ export default function SalesEntry() {
 
   const reset = () => {
     setClientId("");
+    setManualClientName("");
+    setUseManualClient(false);
     setMaterialId("");
     setProductId("");
     setQuantity("");
@@ -92,8 +96,17 @@ export default function SalesEntry() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !clientId || !quantity || !pricePerUnit) {
-      toast({ title: "Missing fields", description: "Client, quantity, and price are required", variant: "destructive" });
+    if (!user) return;
+    if (!useManualClient && !clientId) {
+      toast({ title: "Missing fields", description: "Please select a client or enter a name manually", variant: "destructive" });
+      return;
+    }
+    if (useManualClient && !manualClientName.trim()) {
+      toast({ title: "Missing fields", description: "Please enter the client name", variant: "destructive" });
+      return;
+    }
+    if (!quantity || !pricePerUnit) {
+      toast({ title: "Missing fields", description: "Quantity and price are required", variant: "destructive" });
       return;
     }
     if (tab === "raw_material" && !materialId) {
@@ -108,7 +121,8 @@ export default function SalesEntry() {
     setSubmitting(true);
     const { error } = await supabase.from("sales").insert({
       date,
-      client_id: clientId,
+      client_id: useManualClient ? null : clientId,
+      client_name: useManualClient ? manualClientName.trim() : null,
       item_type: tab,
       raw_material_id: tab === "raw_material" ? materialId : null,
       product_code_id: tab === "finished_product" ? productId : null,
@@ -173,12 +187,38 @@ export default function SalesEntry() {
 
           <div>
             <Label>Client</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-              <SelectContent>
-                {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2 mb-2">
+              <Button
+                type="button"
+                variant={!useManualClient ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setUseManualClient(false); setManualClientName(""); }}
+              >
+                Select from list
+              </Button>
+              <Button
+                type="button"
+                variant={useManualClient ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setUseManualClient(true); setClientId(""); }}
+              >
+                Enter manually
+              </Button>
+            </div>
+            {!useManualClient ? (
+              <Select value={clientId} onValueChange={setClientId}>
+                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                <SelectContent>
+                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                value={manualClientName}
+                onChange={(e) => setManualClientName(e.target.value)}
+                placeholder="Type client name"
+              />
+            )}
           </div>
 
           {tab === "raw_material" ? (
