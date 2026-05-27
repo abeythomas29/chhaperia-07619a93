@@ -25,6 +25,14 @@ interface LogEntry {
   thickness_mm: number | null;
   product_code_id: string;
   client_id: string | null;
+  lab_report_included: boolean | null;
+  gsm: number | null;
+  tensile_strength: number | null;
+  elongation: number | null;
+  swelling_height: number | null;
+  swelling_speed: number | null;
+  surface_resistance: number | null;
+  notes: string | null;
   product_codes: { code: string } | null;
   profiles: { name: string } | null;
 }
@@ -75,12 +83,25 @@ export default function ProductionLogs() {
   const fetchEntries = async () => {
     setLoading(true);
 
-    // Try with thickness_mm first; fall back without it if column doesn't exist yet
+    const fullSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, gsm, tensile_strength, elongation, swelling_height, swelling_speed, surface_resistance, product_codes(code), profiles:worker_id(name)";
+    const basicSelect = "id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, notes, product_codes(code), profiles:worker_id(name)";
+
     let { data, error } = await supabase
       .from("production_entries")
-      .select("id, date, rolls_count, quantity_per_roll, total_quantity, unit, thickness_mm, product_code_id, client_id, product_codes(code), profiles:worker_id(name)")
+      .select(fullSelect)
       .order("date", { ascending: false })
       .limit(500);
+
+    if (error) {
+      // Fall back if lab columns don't exist in this DB
+      const fallback = await supabase
+        .from("production_entries")
+        .select(basicSelect)
+        .order("date", { ascending: false })
+        .limit(500);
+      data = fallback.data as any;
+      error = fallback.error;
+    }
 
     if (error) {
       toast({ title: "Failed to load production logs", description: error.message, variant: "destructive" });
@@ -315,17 +336,18 @@ export default function ProductionLogs() {
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead className="text-right">Thickness (mm)</TableHead>
+              <TableHead>Lab Report</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
+                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
               </TableRow>
             ) : (
               filtered.map((e) => (
@@ -341,6 +363,31 @@ export default function ProductionLogs() {
                   <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
                   <TableCell>{e.unit}</TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      // Parse lab values from notes as fallback (newer entries store labs there)
+                      const parseNote = (label: string) => {
+                        if (!e.notes) return null;
+                        const re = new RegExp(`${label}\\s*:\\s*([\\d.]+)`, "i");
+                        const m = e.notes.match(re);
+                        return m ? m[1] : null;
+                      };
+                      const get = (col: number | null | undefined, label: string) =>
+                        col != null ? String(col) : parseNote(label);
+
+                      const pairs: [string, string | null][] = [
+                        ["GSM", get(e.gsm, "GSM")],
+                        ["Tensile", get(e.tensile_strength, "Tensile")],
+                        ["Elong", get(e.elongation, "Elongation") ?? get(null, "Elong")],
+                        ["Swell H", get(e.swelling_height, "Swelling Height") ?? get(null, "Swell H")],
+                        ["Swell S", get(e.swelling_speed, "Swelling Speed") ?? get(null, "Swell S")],
+                        ["SR", get(e.surface_resistance, "Surface Resistance") ?? get(null, "SR")],
+                      ];
+                      const fields = pairs.filter(([, v]) => v != null).map(([k, v]) => `${k}: ${v}`);
+                      if (fields.length === 0) return <span className="text-muted-foreground">—</span>;
+                      return <div className="text-xs space-y-0.5 min-w-[140px]">{fields.map((f, i) => <div key={i}>{f}</div>)}</div>;
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">

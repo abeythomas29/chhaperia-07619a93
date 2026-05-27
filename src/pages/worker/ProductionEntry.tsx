@@ -135,14 +135,19 @@ export default function ProductionEntry() {
 
     setSubmitting(true);
 
+    // Lab fields don't exist as columns in this DB — fold them into notes
+    const labParts: string[] = [];
+    if (form.gsm) labParts.push(`GSM: ${form.gsm}`);
+    if (form.swelling_speed) labParts.push(`Swelling Speed: ${form.swelling_speed}`);
+    if (form.swelling_height) labParts.push(`Swelling Height: ${form.swelling_height}`);
+    if (form.tensile_strength) labParts.push(`Tensile: ${form.tensile_strength}`);
+    if (form.elongation) labParts.push(`Elongation: ${form.elongation}`);
+    if (form.surface_resistance) labParts.push(`Surface Resistance: ${form.surface_resistance}`);
+
+    const combinedNotes = [form.notes.trim(), labParts.join(" | ")].filter(Boolean).join(" || ");
+
     const baseExtras: Record<string, unknown> = { client_id: form.client_id || null };
-    if (form.gsm) baseExtras.gsm = Number(form.gsm);
-    if (form.notes.trim()) baseExtras.notes = form.notes.trim();
-    if (form.swelling_speed) baseExtras.swelling_speed = Number(form.swelling_speed);
-    if (form.swelling_height) baseExtras.swelling_height = Number(form.swelling_height);
-    if (form.tensile_strength) baseExtras.tensile_strength = Number(form.tensile_strength);
-    if (form.elongation) baseExtras.elongation = Number(form.elongation);
-    if (form.surface_resistance) baseExtras.surface_resistance = Number(form.surface_resistance);
+    if (combinedNotes) baseExtras.notes = combinedNotes;
     // lab_report_included / raw_material_included are UI-only toggles; not persisted
 
     const rowsToInsert = useMultiThickness
