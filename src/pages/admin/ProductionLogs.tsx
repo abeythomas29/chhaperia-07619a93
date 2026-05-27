@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Download, Search, Pencil, Trash2, CalendarIcon } from "lucide-react";
+import { Download, Search, Pencil, Trash2, CalendarIcon, FlaskConical } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -33,13 +33,18 @@ interface LogEntry {
   swelling_speed: number | null;
   surface_resistance: number | null;
   notes: string | null;
-  product_codes: { code: string; category_id: string } | null;
+  product_codes: { code: string; category_id: string | null } | null;
   profiles: { name: string } | null;
 }
 
 interface ProductCode {
   id: string;
   code: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 interface Client {
@@ -50,6 +55,8 @@ interface Client {
 export default function ProductionLogs() {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Date range filter
@@ -79,6 +86,9 @@ export default function ProductionLogs() {
   // Delete state
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Lab report dialog
+  const [labEntry, setLabEntry] = useState<LogEntry | null>(null);
 
   // Dropdowns
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
@@ -143,10 +153,7 @@ export default function ProductionLogs() {
     const entryDate = new Date(e.date);
     const matchesFrom = !dateFrom || entryDate >= dateFrom;
     const matchesTo = !dateTo || entryDate <= dateTo;
-
-    const matchesCategory =
-      selectedCategory === "all" ||
-      e.product_codes?.category_id === selectedCategory;
+    const matchesCategory = categoryFilter === "all" || e.product_codes?.category_id === categoryFilter;
 
     return matchesSearch && matchesFrom && matchesTo && matchesCategory;
   });
@@ -302,21 +309,17 @@ export default function ProductionLogs() {
           />
         </div>
 
-        <div className="w-56">
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="All categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categories.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <Popover>
           <PopoverTrigger asChild>
@@ -362,18 +365,17 @@ export default function ProductionLogs() {
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead className="text-right">Thickness (mm)</TableHead>
-              <TableHead>Lab Report</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
               </TableRow>
             ) : (
               filtered.map((e) => (
@@ -389,40 +391,35 @@ export default function ProductionLogs() {
                   <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
                   <TableCell>{e.unit}</TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     {(() => {
-                      // Parse lab values from notes as fallback (newer entries store labs there)
                       const parseNote = (label: string) => {
                         if (!e.notes) return null;
                         const re = new RegExp(`${label}\\s*:\\s*([\\d.]+)`, "i");
                         const m = e.notes.match(re);
                         return m ? m[1] : null;
                       };
-                      const get = (col: number | null | undefined, label: string) =>
-                        col != null ? String(col) : parseNote(label);
-
-                      const pairs: [string, string | null][] = [
-                        ["GSM", get(e.gsm, "GSM")],
-                        ["Tensile", get(e.tensile_strength, "Tensile")],
-                        ["Elong", get(e.elongation, "Elongation") ?? get(null, "Elong")],
-                        ["Swell H", get(e.swelling_height, "Swelling Height") ?? get(null, "Swell H")],
-                        ["Swell S", get(e.swelling_speed, "Swelling Speed") ?? get(null, "Swell S")],
-                        ["SR", get(e.surface_resistance, "Surface Resistance") ?? get(null, "SR")],
-                      ];
-                      const fields = pairs.filter(([, v]) => v != null).map(([k, v]) => `${k}: ${v}`);
-                      if (fields.length === 0) return <span className="text-muted-foreground">—</span>;
-                      return <div className="text-xs space-y-0.5 min-w-[140px]">{fields.map((f, i) => <div key={i}>{f}</div>)}</div>;
+                      const hasLab =
+                        e.gsm != null || e.tensile_strength != null || e.elongation != null ||
+                        e.swelling_height != null || e.swelling_speed != null || e.surface_resistance != null ||
+                        parseNote("GSM") || parseNote("Tensile") || parseNote("Elongation") ||
+                        parseNote("Swelling Height") || parseNote("Swelling Speed") || parseNote("Surface Resistance");
+                      return (
+                        <div className="flex justify-end gap-1">
+                          {hasLab && (
+                            <Button variant="ghost" size="icon" onClick={() => setLabEntry(e)} title="View Lab Report" className="text-primary hover:text-primary">
+                              <FlaskConical className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      );
                     })()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -523,6 +520,53 @@ export default function ProductionLogs() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Lab Report Dialog */}
+      <Dialog open={!!labEntry} onOpenChange={(open) => !open && setLabEntry(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5" /> Lab Report
+            </DialogTitle>
+            <DialogDescription>
+              {labEntry?.product_codes?.code ?? "—"} · {labEntry ? format(new Date(labEntry.date), "dd/MM/yyyy") : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {labEntry && (() => {
+            const parseNote = (label: string) => {
+              if (!labEntry.notes) return null;
+              const re = new RegExp(`${label}\\s*:\\s*([\\d.]+)`, "i");
+              const m = labEntry.notes.match(re);
+              return m ? m[1] : null;
+            };
+            const get = (col: number | null | undefined, label: string) =>
+              col != null ? String(col) : parseNote(label);
+            const pairs: [string, string | null][] = [
+              ["GSM", get(labEntry.gsm, "GSM")],
+              ["Tensile Strength", get(labEntry.tensile_strength, "Tensile")],
+              ["Elongation", get(labEntry.elongation, "Elongation")],
+              ["Swelling Height", get(labEntry.swelling_height, "Swelling Height")],
+              ["Swelling Speed", get(labEntry.swelling_speed, "Swelling Speed")],
+              ["Surface Resistance", get(labEntry.surface_resistance, "Surface Resistance")],
+            ];
+            const rows = pairs.filter(([, v]) => v != null);
+            if (rows.length === 0) return <p className="text-muted-foreground text-sm">No lab data recorded.</p>;
+            return (
+              <div className="divide-y border rounded-md">
+                {rows.map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between px-4 py-2.5">
+                    <span className="text-sm text-muted-foreground">{k}</span>
+                    <span className="font-mono font-semibold">{v}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLabEntry(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
