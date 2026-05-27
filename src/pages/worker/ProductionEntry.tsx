@@ -143,8 +143,7 @@ export default function ProductionEntry() {
     if (form.tensile_strength) baseExtras.tensile_strength = Number(form.tensile_strength);
     if (form.elongation) baseExtras.elongation = Number(form.elongation);
     if (form.surface_resistance) baseExtras.surface_resistance = Number(form.surface_resistance);
-    baseExtras.lab_report_included = form.lab_report_included;
-    baseExtras.raw_material_included = form.raw_material_included;
+    // lab_report_included / raw_material_included are UI-only toggles; not persisted
 
     const rowsToInsert = useMultiThickness
       ? validRopeRows.map((r) => ({
@@ -258,7 +257,7 @@ export default function ProductionEntry() {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-lg overflow-hidden">
+    <Card className="max-w-lg mx-auto">
       <CardHeader>
         <CardTitle>New Production Entry</CardTitle>
       </CardHeader>
@@ -346,7 +345,7 @@ export default function ProductionEntry() {
                 ) : (
                   <div className="space-y-2">
                     {thicknessRows.map((row, idx) => (
-                      <div key={idx} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
                         <div>
                           {idx === 0 && <Label className="text-xs">Thickness (mm)</Label>}
                           <Input type="number" step="any" value={row.thickness_mm} className="h-9"
@@ -373,7 +372,7 @@ export default function ProductionEntry() {
             );
           })()}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Number of Rolls</Label>
               <Input type="number" min="0" step="0.01" value={form.rolls_count} onChange={(e) => setForm({ ...form, rolls_count: e.target.value })} placeholder="0" />
@@ -384,7 +383,7 @@ export default function ProductionEntry() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Thickness (mm)</Label>
               <Input type="number" min="0" step="0.01" value={form.thickness_mm} onChange={(e) => setForm({ ...form, thickness_mm: e.target.value })} placeholder="e.g. 0.25" />
@@ -413,7 +412,7 @@ export default function ProductionEntry() {
             return (
               <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
                 <Label className="text-sm font-semibold">Copper Tape Options</Label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Raw material prepared here?</Label>
                     <Select value={form.raw_material_included ? "yes" : "no"}
@@ -462,7 +461,7 @@ export default function ProductionEntry() {
               <div className="bg-muted rounded-lg p-4 space-y-2">
                 <p className="text-sm text-muted-foreground text-center">Total Quantity {thicknessRows.length > 0 ? "(single-row preview)" : ""}</p>
                 <p className="text-3xl font-bold text-primary text-center">{base.toLocaleString()} <span className="text-lg font-normal text-muted-foreground">{form.unit}</span></p>
-                <div className="grid grid-cols-1 gap-2 pt-2 border-t border-border text-center sm:grid-cols-3">
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border text-center">
                   <div><p className="text-xs text-muted-foreground">Meters</p><p className="text-base font-semibold">{fmt(mtr, "mtr")}</p></div>
                   <div><p className="text-xs text-muted-foreground">Square Meters</p><p className="text-base font-semibold">{fmt(sqm, "sqmtr")}</p></div>
                   <div><p className="text-xs text-muted-foreground">Kilograms</p><p className="text-base font-semibold">{fmt(kg, "kg")}</p></div>
@@ -495,7 +494,7 @@ export default function ProductionEntry() {
               <div className="border border-border rounded-lg p-4 space-y-3">
                 <Label className="text-sm font-semibold">Lab Report (Optional)</Label>
                 {isWaterBlocking && !needsSurfaceResistance ? (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs">Tensile Strength</Label>
                       <Input type="number" min="0" step="0.01" value={form.tensile_strength} onChange={(e) => setForm({ ...form, tensile_strength: e.target.value })} placeholder="e.g. 45.0" />
@@ -514,7 +513,7 @@ export default function ProductionEntry() {
                     </div>
                   </div>
                 ) : needsSurfaceResistance ? (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs">Tensile Strength</Label>
                       <Input type="number" min="0" step="0.01" value={form.tensile_strength} onChange={(e) => setForm({ ...form, tensile_strength: e.target.value })} placeholder="e.g. 45.0" />
@@ -535,13 +534,13 @@ export default function ProductionEntry() {
                         </div>
                       </>
                     )}
-                    <div className="sm:col-span-2">
+                    <div className="col-span-2">
                       <Label className="text-xs">Surface Resistance (Ω)</Label>
                       <Input type="number" min="0" step="0.01" value={form.surface_resistance} onChange={(e) => setForm({ ...form, surface_resistance: e.target.value })} placeholder="e.g. 1000" />
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs">Tensile Strength</Label>
                       <Input type="number" min="0" step="0.01" value={form.tensile_strength} onChange={(e) => setForm({ ...form, tensile_strength: e.target.value })} placeholder="e.g. 45.0" />
@@ -576,8 +575,8 @@ export default function ProductionEntry() {
               {materialUsage.map((row, idx) => {
                 const mat = rawMaterials.find((m) => m.id === row.raw_material_id);
                 return (
-                  <div key={idx} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_6rem_auto] sm:items-end">
-                    <div className="min-w-0">
+                  <div key={idx} className="flex items-end gap-2">
+                    <div className="flex-1">
                       {idx === 0 && <Label className="text-xs">Material</Label>}
                       <Select value={row.raw_material_id} onValueChange={(v) => updateMaterialRow(idx, "raw_material_id", v)}>
                         <SelectTrigger className="h-9">
@@ -595,7 +594,7 @@ export default function ProductionEntry() {
                         </p>
                       )}
                     </div>
-                    <div>
+                    <div className="w-24">
                       {idx === 0 && <Label className="text-xs">Qty</Label>}
                       <Input
                         type="number"
