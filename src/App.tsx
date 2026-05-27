@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import SplashScreen from "@/components/SplashScreen";
+import { useState, useEffect } from "react";
 import Login from "./pages/Login";
 import AdminLayout from "./layouts/AdminLayout";
 import WorkerLayout from "./layouts/WorkerLayout";
@@ -31,51 +33,70 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="logs" element={<ProductionLogs />} />
-              <Route path="stock" element={<StockManagement />} />
-              <Route path="products" element={<Products />} />
-              <Route path="clients" element={<Clients />} />
-              <Route path="inventory" element={<RawMaterials />} />
-              <Route path="users" element={<UserManagement />} />
-              <Route path="sales" element={<SalesHistory />} />
-            </Route>
-            <Route path="/worker" element={<WorkerLayout />}>
-              <Route index element={<ProductionEntry />} />
-              <Route path="history" element={<ProductionHistory />} />
-              <Route path="stock" element={<StockManagement />} />
-              <Route path="inventory" element={<RawMaterials />} />
-              <Route path="issues" element={<MyIssues />} />
-            </Route>
-            <Route path="/inventory" element={<InventoryManagerLayout />}>
-              <Route index element={<InwardEntry />} />
-              <Route path="view" element={<InventoryView />} />
-              <Route path="history" element={<InwardHistory />} />
-              <Route path="sales" element={<SalesEntry />} />
-              <Route path="sales-history" element={<SalesHistory />} />
-            </Route>
-            <Route path="/slitting" element={<SlittingManagerLayout />}>
-              <Route index element={<SlittingEntry />} />
-              <Route path="history" element={<SlittingHistory />} />
-            </Route>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        {showSplash ? (
+          <SplashScreen />
+        ) : (
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="logs" element={<ProductionLogs />} />
+                  <Route path="stock" element={<StockManagement />} />
+                  <Route path="products" element={<Products />} />
+                  <Route path="clients" element={<Clients />} />
+                  <Route path="inventory" element={<RawMaterials />} />
+                  <Route path="users" element={<UserManagement />} />
+                  <Route path="sales" element={<SalesHistory />} />
+                </Route>
+                <Route path="/worker" element={<WorkerLayout />}>
+                  <Route index element={<ProductionEntry />} />
+                  <Route path="history" element={<ProductionHistory />} />
+                  <Route path="stock" element={<StockManagement />} />
+                  <Route path="inventory" element={<RawMaterials />} />
+                  <Route path="issues" element={<MyIssues />} />
+                </Route>
+                <Route path="/inventory" element={<InventoryManagerLayout />}>
+                  <Route index element={<InwardEntry />} />
+                  <Route path="view" element={<InventoryView />} />
+                  <Route path="history" element={<InwardHistory />} />
+                  <Route path="sales" element={<SalesEntry />} />
+                  <Route path="sales-history" element={<SalesHistory />} />
+                </Route>
+                <Route path="/slitting" element={<SlittingManagerLayout />}>
+                  <Route index element={<SlittingEntry />} />
+                  <Route path="entry" element={<SlittingEntry defaultTab="slitting" />} />
+                  <Route path="return" element={<SlittingEntry defaultTab="return" />} />
+                  <Route path="head36" element={<SlittingEntry defaultTab="head36" />} />
+                  <Route path="history" element={<SlittingHistory />} />
+                </Route>
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        )}
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
