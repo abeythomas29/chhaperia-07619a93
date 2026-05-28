@@ -1,0 +1,1 @@
+ALTER TABLE public.slitting_entries ADD COLUMN IF NOT EXISTS gsm numeric;

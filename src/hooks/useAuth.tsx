@@ -1,10 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useEffect, useState, ReactNode, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { z } from "zod";
-
-type AppRole = string | null;
-type SignupDepartment = string;
+import { AuthContext, type AppRole, type SignupDepartment } from "./auth-context";
 
 
 const signUpSchema = z.object({
@@ -15,26 +13,7 @@ const signUpSchema = z.object({
   requestedDepartment: z.enum(["worker", "inventory_manager", "slitting_manager"]),
 });
 
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  role: AppRole;
-  roles: string[];
-  profileName: string | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string, employeeId: string, requestedDepartment: SignupDepartment) => Promise<{ error: Error | null }>;
-  signOut: () => Promise<void>;
-  isAdmin: boolean;
-  isSuperAdmin: boolean;
-  isPending: boolean;
-  isWorker: boolean;
-  isInventoryManager: boolean;
-  isSlittingManager: boolean;
-  hasRole: (r: string) => boolean;
-}
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

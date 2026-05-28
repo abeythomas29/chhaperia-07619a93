@@ -1,4 +1,3 @@
-// Hardcoded to original Supabase project — bypasses Lovable Cloud .env
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 

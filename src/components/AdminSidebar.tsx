@@ -8,6 +8,7 @@ import {
   Warehouse,
   Boxes,
   ShoppingCart,
+  Scissors,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +31,7 @@ import logo from "@/assets/logo.png";
 const mainItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Production Logs", url: "/admin/logs", icon: ClipboardList },
+  { title: "Slitting Logs", url: "/admin/slitting", icon: Scissors },
   { title: "Stock Management", url: "/admin/stock", icon: Warehouse },
   { title: "Products", url: "/admin/products", icon: Package },
   { title: "Inventory", url: "/admin/inventory", icon: Boxes },
