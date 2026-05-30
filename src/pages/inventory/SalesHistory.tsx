@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, ShoppingCart, Pencil, Trash2 } from "lucide-react";
+import { Search, ShoppingCart, Pencil, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SaleRow {
   id: string;
@@ -41,6 +42,11 @@ export default function SalesHistory() {
   const [deleteRow, setDeleteRow] = useState<SaleRow | null>(null);
   const [editForm, setEditForm] = useState({ quantity: "", price_per_unit: "", thickness_mm: "", notes: "" });
   const { toast } = useToast();
+
+  // Filters state
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [category, setCategory] = useState("all");
 
   useEffect(() => {
     if (!user) return;
@@ -124,11 +130,18 @@ export default function SalesHistory() {
 
   const filtered = rows.filter((r) => {
     const q = search.toLowerCase();
-    return (
+    const matchesSearch =
       (r.item_name ?? "").toLowerCase().includes(q) ||
       (r.client_name ?? "").toLowerCase().includes(q) ||
-      (r.notes ?? "").toLowerCase().includes(q)
-    );
+      (r.notes ?? "").toLowerCase().includes(q);
+
+    const matchesCategory =
+      category === "all" || r.item_type === category;
+
+    const matchesStartDate = !startDate || r.date >= startDate;
+    const matchesEndDate = !endDate || r.date <= endDate;
+
+    return matchesSearch && matchesCategory && matchesStartDate && matchesEndDate;
   });
 
   const totalRevenue = filtered.reduce((sum, r) => sum + Number(r.total_amount || 0), 0);
@@ -144,10 +157,76 @@ export default function SalesHistory() {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by item, client, notes..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 bg-muted/30 p-3 rounded-lg border border-border/40">
+        <div className="sm:col-span-2 relative">
+          <Label className="text-xs text-muted-foreground mb-1 block font-medium">Search</Label>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by item, client, notes..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="pl-10 bg-background" 
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-xs text-muted-foreground mb-1 block font-medium">Category</Label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="raw_material">Raw Materials</SelectItem>
+              <SelectItem value="finished_product">Finished Products</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1 block font-medium">From Date</Label>
+            <Input 
+              type="date" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+              className="bg-background cursor-pointer text-xs" 
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1 block font-medium">To Date</Label>
+            <Input 
+              type="date" 
+              value={endDate} 
+              onChange={(e) => setEndDate(e.target.value)} 
+              className="bg-background cursor-pointer text-xs" 
+            />
+          </div>
+        </div>
       </div>
+
+      {(startDate || endDate || category !== "all" || search) && (
+        <div className="flex items-center justify-between px-1">
+          <div className="text-xs text-muted-foreground">
+            Showing {filtered.length} of {rows.length} sales matching current filters
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              setStartDate("");
+              setEndDate("");
+              setCategory("all");
+              setSearch("");
+            }}
+            className="text-xs h-7 gap-1 text-muted-foreground hover:text-foreground hover:bg-muted"
+          >
+            <X className="h-3.5 w-3.5" /> Clear Filters
+          </Button>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
