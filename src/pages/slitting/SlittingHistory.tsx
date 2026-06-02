@@ -65,7 +65,6 @@ export default function SlittingHistory() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  
   // Collapsible nested 36 Head entries states
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [head36Map, setHead36Map] = useState<Record<string, Head36Row[]>>({});
@@ -84,7 +83,7 @@ export default function SlittingHistory() {
         .select("id, date, rolls_taken, rolls_produced, roll_width_mm, length_per_tape_mtr, total_quantity, unit, notes")
         .eq("slitting_entry_id", entryId)
         .order("date", { ascending: false });
-      setHead36Map((m) => ({ ...m, [entryId]: (data as unknown as Head36Row[]) ?? [] }));
+      setHead36Map((m) => ({ ...m, [entryId]: ((data as unknown) as Head36Row[]) ?? [] }));
       setLoadingHead36(null);
     }
   };

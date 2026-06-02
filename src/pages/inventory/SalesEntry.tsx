@@ -37,6 +37,8 @@ export default function SalesEntry() {
   const [useManualClient, setUseManualClient] = useState(false);
   const [materialId, setMaterialId] = useState("");
   const [productId, setProductId] = useState("");
+  const [productAvailable, setProductAvailable] = useState<number | null>(null);
+  const [loadingAvailable, setLoadingAvailable] = useState(false);
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("kg");
   const [pricePerUnit, setPricePerUnit] = useState("");
@@ -108,6 +110,21 @@ export default function SalesEntry() {
   useEffect(() => {
     if (selectedMaterial) setUnit(selectedMaterial.unit);
   }, [selectedMaterial]);
+
+  // Fetch available stock for finished product
+  useEffect(() => {
+    if (tab !== "finished_product" || !productId) {
+      setProductAvailable(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingAvailable(true);
+    getFinishedProductAvailable(productId)
+      .then((v) => { if (!cancelled) setProductAvailable(v); })
+      .catch(() => { if (!cancelled) setProductAvailable(null); })
+      .finally(() => { if (!cancelled) setLoadingAvailable(false); });
+    return () => { cancelled = true; };
+  }, [productId, tab]);
 
   const total = quantity && pricePerUnit ? Number(quantity) * Number(pricePerUnit) : 0;
 
@@ -346,6 +363,15 @@ export default function SalesEntry() {
                   {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.code}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {productId && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {loadingAvailable
+                    ? "Checking available stock…"
+                    : productAvailable !== null
+                      ? `Available: ${productAvailable.toLocaleString()} ${unit}`
+                      : "Availability unknown"}
+                </p>
+              )}
             </div>
           )}
 

@@ -7,9 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Loader2, Scissors, Search, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Loader2, Scissors, Search, Trash2, Layers, CalendarIcon, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface SlittingRow {
   id: string;
@@ -22,7 +26,7 @@ interface SlittingRow {
   unit: string;
   notes: string | null;
   slitting_manager_id: string;
-  product_codes: { code: string } | null;
+  product_codes: { code: string; category_id?: string | null } | null;
 }
 
 const parseNum = (notes: string | null, label: string): number => {
@@ -41,12 +45,35 @@ const computeTotals = (r: SlittingRow) => {
   return { lengthMtr, sqm, kg, rolls, rollLength };
 };
 
+interface Head36Row {
+  id: string;
+  date: string;
+  slitting_entry_id: string | null;
+  rolls_taken: number;
+  rolls_produced: number;
+  roll_width_mm: number | null;
+  length_per_tape_mtr: number | null;
+  thickness_mm: number | null;
+  gsm: number | null;
+  unit: string;
+  notes: string | null;
+  operator_id: string;
+}
+
 export default function SlittingLogs() {
   const [entries, setEntries] = useState<SlittingRow[]>([]);
   const [managers, setManagers] = useState<Record<string, string>>({});
+  const [head36ByEntry, setHead36ByEntry] = useState<Record<string, Head36Row[]>>({});
+  const [head36Operators, setHead36Operators] = useState<Record<string, string>>({});
+  const [head36Open, setHead36Open] = useState<SlittingRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [productFilter, setProductFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
+  const [reportEntry, setReportEntry] = useState<SlittingRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
@@ -66,8 +93,8 @@ export default function SlittingLogs() {
 
   useEffect(() => {
     (async () => {
-      const fullSelect = "id, date, source_quantity, cut_quantity_produced, cut_width_mm, thickness_mm, gsm, unit, notes, slitting_manager_id, product_codes(code)";
-      const basicSelect = "id, date, source_quantity, cut_quantity_produced, cut_width_mm, thickness_mm, unit, notes, slitting_manager_id, product_codes(code)";
+      const fullSelect = "id, date, source_quantity, cut_quantity_produced, cut_width_mm, thickness_mm, gsm, unit, notes, slitting_manager_id, product_codes(code, category_id)";
+      const basicSelect = "id, date, source_quantity, cut_quantity_produced, cut_width_mm, thickness_mm, unit, notes, slitting_manager_id, product_codes(code, category_id)";
 
       let { data, error } = await supabase
         .from("slitting_entries")
@@ -102,7 +129,37 @@ export default function SlittingLogs() {
         (profs ?? []).forEach((p: any) => { map[p.user_id] = p.name; });
         setManagers(map);
       }
+
+      // Fetch head36 entries linked to these slitting entries
+      const slittingIds = rows.map((r) => r.id);
+      if (slittingIds.length) {
+        const { data: h36 } = await supabase
+          .from("head36_entries" as any)
+          .select("id, date, slitting_entry_id, rolls_taken, rolls_produced, roll_width_mm, length_per_tape_mtr, thickness_mm, gsm, unit, notes, operator_id")
+          .in("slitting_entry_id", slittingIds);
+        const grouped: Record<string, Head36Row[]> = {};
+        ((h36 as unknown as Head36Row[]) ?? []).forEach((r) => {
+          if (!r.slitting_entry_id) return;
+          (grouped[r.slitting_entry_id] ||= []).push(r);
+        });
+        setHead36ByEntry(grouped);
+
+        const opIds = Array.from(new Set(((h36 as unknown as Head36Row[]) ?? []).map((r) => r.operator_id).filter(Boolean)));
+        if (opIds.length) {
+          const { data: ops } = await supabase.from("profiles").select("user_id, name").in("user_id", opIds);
+          const opMap: Record<string, string> = {};
+          (ops ?? []).forEach((p: any) => { opMap[p.user_id] = p.name; });
+          setHead36Operators(opMap);
+        }
+      }
       setLoading(false);
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("product_categories").select("id, name").eq("status", "active").order("name");
+      setCategories(data ?? []);
     })();
   }, []);
 
@@ -110,6 +167,10 @@ export default function SlittingLogs() {
 
   const filtered = entries.filter((e) => {
     if (productFilter !== "all" && e.product_codes?.code !== productFilter) return false;
+    if (categoryFilter !== "all" && e.product_codes?.category_id !== categoryFilter) return false;
+    const d = new Date(e.date);
+    if (dateFrom && d < dateFrom) return false;
+    if (dateTo && d > dateTo) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -147,8 +208,8 @@ export default function SlittingLogs() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
+        <div className="flex flex-wrap items-end gap-3 mb-4">
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by product, manager, notes..."
@@ -157,13 +218,45 @@ export default function SlittingLogs() {
               className="pl-9"
             />
           </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="All categories" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <Select value={productFilter} onValueChange={setProductFilter}>
-            <SelectTrigger className="sm:w-64"><SelectValue placeholder="All products" /></SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="All products" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All products</SelectItem>
               {products.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "From date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                <CalendarIcon className="h-4 w-4 mr-2" />
+                {dateTo ? format(dateTo, "dd/MM/yyyy") : "To date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          {(dateFrom || dateTo) && (
+            <Button variant="ghost" size="sm" onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}>Clear dates</Button>
+          )}
         </div>
 
         <div className="bg-muted rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center mb-4">
@@ -209,10 +302,25 @@ export default function SlittingLogs() {
                 {filtered.map((e) => {
                   const t = computeTotals(e);
                   const gsm = e.gsm ?? parseNum(e.notes, "GSM");
+                  const h36s = head36ByEntry[e.id] ?? [];
+                  const has36 = h36s.length > 0;
                   return (
                     <TableRow key={e.id}>
                       <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
-                      <TableCell className="font-medium">{e.product_codes?.code ?? "—"}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <span>{e.product_codes?.code ?? "—"}</span>
+                          {has36 && (
+                            <Badge
+                              onClick={() => setHead36Open(e)}
+                              className="cursor-pointer bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                              title="View 36 Head production details"
+                            >
+                              <Layers className="h-3 w-3 mr-1" /> 36
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>{managers[e.slitting_manager_id] ?? "—"}</TableCell>
                       <TableCell>{e.cut_width_mm} mm</TableCell>
                       <TableCell className="text-right font-mono">{t.rolls > 0 ? t.rolls.toLocaleString(undefined, { maximumFractionDigits: 0 }) : "—"}</TableCell>
@@ -222,9 +330,14 @@ export default function SlittingLogs() {
                       <TableCell className="text-right font-mono">{gsm > 0 ? gsm : "—"}</TableCell>
                       <TableCell className="text-right font-mono">{e.thickness_mm ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -255,6 +368,111 @@ export default function SlittingLogs() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={!!head36Open} onOpenChange={(open) => !open && setHead36Open(null)}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Layers className="h-5 w-5" /> 36 Head Production —{" "}
+                {head36Open?.product_codes?.code ?? "—"}
+              </DialogTitle>
+              <DialogDescription>
+                Slitting entry dated {head36Open ? format(new Date(head36Open.date), "dd/MM/yy") : ""} ·
+                Cut width {head36Open?.cut_width_mm} mm
+              </DialogDescription>
+            </DialogHeader>
+            {head36Open && (() => {
+              const list = head36ByEntry[head36Open.id] ?? [];
+              if (!list.length) return <p className="text-muted-foreground text-sm">No 36 head production recorded for this slitting entry.</p>;
+              return (
+                <div className="space-y-3">
+                  {list.map((h) => {
+                    const totalLen = (h.length_per_tape_mtr ?? 0) * (h.rolls_produced ?? 0);
+                    const totalSqm = h.roll_width_mm && h.length_per_tape_mtr && h.rolls_produced
+                      ? (h.roll_width_mm * h.length_per_tape_mtr / 1000) * h.rolls_produced
+                      : 0;
+                    return (
+                      <div key={h.id} className="border rounded-lg p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">{format(new Date(h.date), "dd/MM/yy")}</span>
+                          <span className="text-xs text-muted-foreground">{head36Operators[h.operator_id] ?? "—"}</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                          <div><span className="text-muted-foreground">Rolls Taken:</span> <span className="font-mono">{h.rolls_taken}</span></div>
+                          <div><span className="text-muted-foreground">Rolls Produced:</span> <span className="font-mono">{h.rolls_produced}</span></div>
+                          <div><span className="text-muted-foreground">Tape Width:</span> <span className="font-mono">{h.roll_width_mm ?? "—"} mm</span></div>
+                          <div><span className="text-muted-foreground">Length/Tape:</span> <span className="font-mono">{h.length_per_tape_mtr ?? "—"} mtr</span></div>
+                          <div><span className="text-muted-foreground">Thickness:</span> <span className="font-mono">{h.thickness_mm ?? "—"} mm</span></div>
+                          <div><span className="text-muted-foreground">GSM:</span> <span className="font-mono">{h.gsm ?? "—"}</span></div>
+                        </div>
+                        <div className="bg-muted rounded p-2 grid grid-cols-2 gap-2 text-center">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Total Length</p>
+                            <p className="font-bold text-primary">{totalLen.toLocaleString(undefined, { maximumFractionDigits: 2 })} mtr</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Total Production</p>
+                            <p className="font-bold text-primary">{totalSqm.toLocaleString(undefined, { maximumFractionDigits: 2 })} sqm</p>
+                          </div>
+                        </div>
+                        {h.notes && <p className="text-xs text-muted-foreground">Notes: {h.notes}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setHead36Open(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!reportEntry} onOpenChange={(open) => !open && setReportEntry(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" /> Lab Report
+              </DialogTitle>
+              <DialogDescription>
+                {reportEntry?.product_codes?.code ?? "—"} · {reportEntry ? format(new Date(reportEntry.date), "dd/MM/yyyy") : ""}
+              </DialogDescription>
+            </DialogHeader>
+            {reportEntry && (() => {
+              const note = (label: string) => {
+                if (!reportEntry.notes) return null;
+                const m = reportEntry.notes.match(new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i"));
+                return m ? m[1] : null;
+              };
+              const pairs: [string, string | null][] = [
+                ["GSM", reportEntry.gsm != null ? String(reportEntry.gsm) : note("GSM")],
+                ["Thickness (mm)", reportEntry.thickness_mm != null ? String(reportEntry.thickness_mm) : note("Thickness")],
+                ["Tensile Strength", note("Tensile")],
+                ["Elongation", note("Elongation")],
+                ["Swelling Height", note("Swelling Height")],
+                ["Swelling Speed", note("Swelling Speed")],
+                ["Surface Resistance", note("Surface Resistance")],
+              ];
+              return (
+                <div className="divide-y border rounded-md">
+                  {pairs.map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-sm text-muted-foreground">{k}</span>
+                      <span className={`font-mono ${v != null && v !== "" ? "font-semibold" : "text-muted-foreground"}`}>
+                        {v != null && v !== "" ? v : "N/A"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReportEntry(null)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+
       </CardContent>
     </Card>
   );

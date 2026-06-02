@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { UNIT_OPTIONS } from "@/lib/units";
 import { queueOfflineEntry, isNetworkError } from "@/lib/offlineSync";
 
-interface ThicknessRow { thickness_mm: string; rolls_count: string; quantity_per_roll: string; }
+interface ThicknessRow { thickness_mm: string; rolls_count: string; length_per_roll: string; width_per_roll: string; }
 
 interface MaterialUsageRow {
   raw_material_id: string;
@@ -44,7 +44,8 @@ export default function ProductionEntry() {
     product_code_id: "",
     client_id: "",
     rolls_count: "",
-    quantity_per_roll: "",
+    length_per_roll: "",
+    width_per_roll: "",
     unit: "meters",
     thickness_mm: "",
     gsm: "",
@@ -127,7 +128,8 @@ export default function ProductionEntry() {
     fetchData();
   }, []);
 
-  const totalQuantity = (Number(form.rolls_count) || 0) * (Number(form.quantity_per_roll) || 0);
+  const qtyPerRoll = (Number(form.length_per_roll) || 0) * (Number(form.width_per_roll) || 0);
+  const totalQuantity = (Number(form.rolls_count) || 0) * qtyPerRoll;
 
   const filteredProductCodes = selectedCategory
     ? productCodes.filter((p) => p.category_id === selectedCategory)
@@ -166,10 +168,10 @@ export default function ProductionEntry() {
 
     const categoryName = categories.find((c) => c.id === selectedCategory)?.name?.toLowerCase() ?? "";
     const isRope = categoryName.includes("rope");
-    const validRopeRows = thicknessRows.filter((r) => r.thickness_mm && r.rolls_count && r.quantity_per_roll);
+    const validRopeRows = thicknessRows.filter((r) => r.thickness_mm && r.rolls_count && r.length_per_roll && r.width_per_roll);
     const useMultiThickness = isRope && validRopeRows.length > 0;
 
-    if (!useMultiThickness && (!form.rolls_count || !form.quantity_per_roll)) return;
+    if (!useMultiThickness && (!form.rolls_count || !form.length_per_roll || !form.width_per_roll)) return;
 
     setSubmitting(true);
 
@@ -193,7 +195,7 @@ export default function ProductionEntry() {
           date: form.date,
           worker_id: user.id,
           rolls_count: Number(r.rolls_count),
-          quantity_per_roll: Number(r.quantity_per_roll),
+          quantity_per_roll: Number(r.length_per_roll) * Number(r.width_per_roll),
           unit: form.unit,
           thickness_mm: Number(r.thickness_mm),
           ...baseExtras,
@@ -203,7 +205,7 @@ export default function ProductionEntry() {
           date: form.date,
           worker_id: user.id,
           rolls_count: Number(form.rolls_count),
-          quantity_per_roll: Number(form.quantity_per_roll),
+          quantity_per_roll: Number(form.length_per_roll) * Number(form.width_per_roll),
           unit: form.unit,
           ...(form.thickness_mm ? { thickness_mm: Number(form.thickness_mm) } : {}),
           ...baseExtras,
@@ -241,7 +243,7 @@ export default function ProductionEntry() {
 
       setSubmitted(true);
       setTimeout(() => {
-        setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", gsm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "", surface_resistance: "", lab_report_included: false, raw_material_included: false });
+        setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", length_per_roll: "", width_per_roll: "", unit: "meters", thickness_mm: "", gsm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "", surface_resistance: "", lab_report_included: false, raw_material_included: false });
         setThicknessRows([]);
         setSelectedCategory("");
         setMaterialUsage([]);
@@ -294,7 +296,7 @@ export default function ProductionEntry() {
 
       setSubmitted(true);
       setTimeout(() => {
-        setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", gsm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "", surface_resistance: "", lab_report_included: false, raw_material_included: false });
+        setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", length_per_roll: "", width_per_roll: "", unit: "meters", thickness_mm: "", gsm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "", surface_resistance: "", lab_report_included: false, raw_material_included: false });
         setThicknessRows([]);
         setSelectedCategory("");
         setMaterialUsage([]);
@@ -555,7 +557,7 @@ export default function ProductionEntry() {
               <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-semibold flex items-center gap-1"><Layers className="h-4 w-4" /> Multiple Thickness Rows</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setThicknessRows((r) => [...r, { thickness_mm: "", rolls_count: "", quantity_per_roll: "" }])}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setThicknessRows((r) => [...r, { thickness_mm: "", rolls_count: "", length_per_roll: "", width_per_roll: "" }])}>
                     <Plus className="h-3 w-3 mr-1" /> Add
                   </Button>
                 </div>
@@ -564,7 +566,7 @@ export default function ProductionEntry() {
                 ) : (
                   <div className="space-y-2">
                     {thicknessRows.map((row, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-end">
                         <div>
                           {idx === 0 && <Label className="text-xs">Thickness (mm)</Label>}
                           <Input type="number" step="any" value={row.thickness_mm} className="h-9"
@@ -576,9 +578,14 @@ export default function ProductionEntry() {
                             onChange={(e) => setThicknessRows((rs) => rs.map((r, i) => i === idx ? { ...r, rolls_count: e.target.value } : r))} />
                         </div>
                         <div>
-                          {idx === 0 && <Label className="text-xs">Qty / Roll</Label>}
-                          <Input type="number" step="any" value={row.quantity_per_roll} className="h-9"
-                            onChange={(e) => setThicknessRows((rs) => rs.map((r, i) => i === idx ? { ...r, quantity_per_roll: e.target.value } : r))} />
+                          {idx === 0 && <Label className="text-xs">Length / Roll</Label>}
+                          <Input type="number" step="any" value={row.length_per_roll} className="h-9"
+                            onChange={(e) => setThicknessRows((rs) => rs.map((r, i) => i === idx ? { ...r, length_per_roll: e.target.value } : r))} />
+                        </div>
+                        <div>
+                          {idx === 0 && <Label className="text-xs">Width / Roll</Label>}
+                          <Input type="number" step="any" value={row.width_per_roll} className="h-9"
+                            onChange={(e) => setThicknessRows((rs) => rs.map((r, i) => i === idx ? { ...r, width_per_roll: e.target.value } : r))} />
                         </div>
                         <Button type="button" variant="ghost" size="icon" className="h-9 w-9" onClick={() => setThicknessRows((rs) => rs.filter((_, i) => i !== idx))}>
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -591,16 +598,23 @@ export default function ProductionEntry() {
             );
           })()}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label>Number of Rolls</Label>
               <Input type="number" min="0" step="0.01" value={form.rolls_count} onChange={(e) => setForm({ ...form, rolls_count: e.target.value })} placeholder="0" />
             </div>
             <div>
-              <Label>Quantity per Roll</Label>
-              <Input type="number" min="0" step="0.01" value={form.quantity_per_roll} onChange={(e) => setForm({ ...form, quantity_per_roll: e.target.value })} placeholder="0" />
+              <Label>Length / Roll</Label>
+              <Input type="number" min="0" step="0.01" value={form.length_per_roll} onChange={(e) => setForm({ ...form, length_per_roll: e.target.value })} placeholder="0" />
+            </div>
+            <div>
+              <Label>Width / Roll</Label>
+              <Input type="number" min="0" step="0.01" value={form.width_per_roll} onChange={(e) => setForm({ ...form, width_per_roll: e.target.value })} placeholder="0" />
             </div>
           </div>
+          {(Number(form.length_per_roll) > 0 && Number(form.width_per_roll) > 0) && (
+            <p className="text-xs text-muted-foreground -mt-2">Qty per roll = {qtyPerRoll.toLocaleString(undefined, { maximumFractionDigits: 4 })}</p>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

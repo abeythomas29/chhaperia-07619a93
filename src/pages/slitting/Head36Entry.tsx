@@ -20,6 +20,7 @@ interface SlittingRow {
   thickness_mm: number | null;
   gsm: number | null;
   unit: string;
+  notes?: string | null;
   product_codes: { code: string; id?: string } | null;
 }
 
@@ -55,16 +56,33 @@ export default function Head36Entry() {
       }
 
       try {
-        const { data } = await supabase
+        const fullSelect = "id, date, cut_quantity_produced, cut_width_mm, thickness_mm, gsm, unit, notes, product_codes(code, id)";
+        const basicSelect = "id, date, cut_quantity_produced, cut_width_mm, thickness_mm, unit, notes, product_codes(code, id)";
+        let { data, error } = await supabase
           .from("slitting_entries")
-          .select("id, date, cut_quantity_produced, cut_width_mm, thickness_mm, gsm, unit, product_codes(code, id)")
-          .eq("slitting_manager_id", user.id)
-          .order("date", { ascending: false })
-          .limit(50);
-        
-        const newEntries = (data as unknown as SlittingRow[]) ?? [];
-        setSlittingEntries(newEntries);
-        localStorage.setItem("cache_h36_slitting_entries", JSON.stringify(newEntries));
+          .select(fullSelect)
+          .order("date", { ascending: false });
+        if (error) {
+          const fb = await supabase
+            .from("slitting_entries")
+            .select(basicSelect)
+            .order("date", { ascending: false });
+          data = fb.data as any;
+          error = fb.error;
+        }
+
+        if (error) throw error;
+
+        const rows = ((data as unknown as any[]) ?? []).map((r) => {
+          let gsm = r.gsm ?? null;
+          if (gsm == null && typeof r.notes === "string") {
+            const m = r.notes.match(/GSM\s*[:\-]\s*(\d+(?:\.\d+)?)/i);
+            if (m) gsm = parseFloat(m[1]);
+          }
+          return { ...r, gsm } as SlittingRow;
+        });
+        setSlittingEntries(rows);
+        localStorage.setItem("cache_h36_slitting_entries", JSON.stringify(rows));
       } catch (err) {
         console.error("Error fetching slitting entries", err);
       } finally {
@@ -126,7 +144,7 @@ export default function Head36Entry() {
         const res = await supabase.from("head36_entries" as any).insert(payload as any);
         error = res.error;
       } catch (err) {
-        error = err;
+        error = err as any;
       }
 
       if (error) {
@@ -134,14 +152,20 @@ export default function Head36Entry() {
           queueOfflineEntry("head36_entries", payload);
           isQueuedOffline = true;
         } else {
-          toast({ title: "Error", description: error.message || String(error), variant: "destructive" });
+          const isMissingTable = (error as any).code === "PGRST205" || /head36_entries/i.test(error.message ?? "") && /schema cache|not find/i.test(error.message ?? "");
+          const description = isMissingTable
+            ? "36 Head table is not provisioned in the backend yet. Ask an admin to run the head36_entries setup SQL (see .lovable/plan.md)."
+            : (error.message || String(error));
+          toast({ title: "Error", description, variant: "destructive" });
           setSubmitting(false);
           return;
         }
       }
     }
 
-    if (!isQueuedOffline) {
+    if (isQueuedOffline) {
+      toast({ title: "Offline: Saved locally", description: "Entry queued for sync." });
+    } else {
       toast({ title: "36 Head entry saved" });
     }
     setForm({ ...form, rolls_taken: "", rolls_produced: "", roll_width_mm: "", length_per_tape_mtr: "", notes: "" });

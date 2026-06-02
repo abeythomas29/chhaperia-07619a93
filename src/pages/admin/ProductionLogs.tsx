@@ -417,11 +417,9 @@ export default function ProductionLogs() {
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      {hasReport && (
-                        <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
+                        <FileText className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -561,14 +559,15 @@ export default function ProductionLogs() {
               ["Swelling Speed", get(reportEntry.swelling_speed, "Swelling Speed")],
               ["Surface Resistance", get(reportEntry.surface_resistance, "Surface Resistance")],
             ];
-            const rows = pairs.filter(([, v]) => v != null && v !== "");
-            if (rows.length === 0) return <p className="text-muted-foreground text-sm">No report data recorded.</p>;
+
             return (
               <div className="divide-y border rounded-md">
-                {rows.map(([k, v]) => (
+                {pairs.map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between px-4 py-2.5">
                     <span className="text-sm text-muted-foreground">{k}</span>
-                    <span className="font-mono font-semibold">{v}</span>
+                    <span className={`font-mono ${v != null && v !== "" ? "font-semibold" : "text-muted-foreground"}`}>
+                      {v != null && v !== "" ? v : "N/A"}
+                    </span>
                   </div>
                 ))}
               </div>

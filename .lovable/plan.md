@@ -1,111 +1,81 @@
 
-# Plan — Production Workflow Expansion
+## What's happening
 
-Below is what I understood from your three handwritten notes. Please confirm before I build.
+The app's Supabase client points to `eezbgxbbgaqifgcxxbun` (your live backend). The 36 Head submit POST is returning:
 
----
+```
+404 PGRST205 — Could not find the table 'public.head36_entries' in the schema cache
+```
 
-## 1) Rope Production — multi-thickness in one entry
+The table simply does not exist in that backend. I cannot run migrations there from here — that project is not managed by Lovable Cloud. The fix has to be applied once, by hand, in that backend's SQL editor.
 
-**Current**: Production entry sends only one thickness, for one client at a time, unit fixed.
+## Plan
 
-**Changes**:
-- In Production Entry (worker panel), when product category = **Rope**, allow entering **multiple thickness rows in a single submission** (each row = thickness + rolls + quantity-per-roll).
-- Keep client = single client per entry (as today).
-- Add **Unit selector** (manual): kg, sqmtr, mtr, pcs, ltr, box/bundle.
-- On save → create one `production_entries` row per thickness row, all sharing the same client/date/product.
+### Step 1 — You run this SQL in the live backend (`eezbgxbbgaqifgcxxbun` → SQL editor)
 
----
+```sql
+-- 1. Table
+CREATE TABLE IF NOT EXISTS public.head36_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  date date NOT NULL DEFAULT CURRENT_DATE,
+  slitting_entry_id uuid,
+  product_code_id uuid,
+  operator_id uuid NOT NULL,
+  rolls_taken numeric NOT NULL DEFAULT 0,
+  rolls_produced numeric NOT NULL DEFAULT 0,
+  roll_width_mm numeric,
+  length_per_tape_mtr numeric,
+  thickness_mm numeric,
+  gsm numeric,
+  total_quantity numeric,
+  unit text NOT NULL DEFAULT 'meters',
+  notes text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-## 2) Copper Woven Semi-Cond Water Blocking Tape — optional Lab Report & Raw Material flags
+-- 2. Grants (required — PostgREST won't see the table without these)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.head36_entries TO authenticated;
+GRANT ALL ON public.head36_entries TO service_role;
 
-This product has 3 stages: Fiber-glass tape → Coated with SC material → Lab report.
+-- 3. RLS
+ALTER TABLE public.head36_entries ENABLE ROW LEVEL SECURITY;
 
-Sometimes the fiber-glass tape arrives pre-made (bought), sometimes it's made in-house. Same for lab reports.
+CREATE POLICY "Authenticated can view head36 entries"
+  ON public.head36_entries FOR SELECT TO authenticated USING (true);
 
-**Changes**:
-- On the Production Entry form for this product, add **two checkboxes**:
-  - ☐ Raw material prepared here
-  - ☐ Lab report prepared here
-- When **Raw material** is checked → show fields to record the in-house fiber-glass tape production (thickness, rolls, qty, etc.).
-- When **Lab report** is checked → show fields to attach/record lab report values (swelling speed, swelling height, tensile strength, elongation, surface resistance — already in `production_entries`).
-- When unchecked → those sections are hidden; entry only records the SC-coating step.
+CREATE POLICY "Slitting managers can insert own head36 entries"
+  ON public.head36_entries FOR INSERT TO authenticated
+  WITH CHECK (auth.uid() = operator_id AND public.has_role(auth.uid(), 'slitting_manager'));
 
----
+CREATE POLICY "Slitting managers can update own head36 entries"
+  ON public.head36_entries FOR UPDATE TO authenticated
+  USING (auth.uid() = operator_id AND public.has_role(auth.uid(), 'slitting_manager'))
+  WITH CHECK (auth.uid() = operator_id AND public.has_role(auth.uid(), 'slitting_manager'));
 
-## 3) Slitting Panel — split into 3 tabs
+CREATE POLICY "Admins can manage head36 entries"
+  ON public.head36_entries FOR ALL USING (public.is_admin(auth.uid()));
 
-Today slitting has **one** entry form. Split it into **3 tabs**:
+-- 4. Force PostgREST to pick up the new table
+NOTIFY pgrst, 'reload schema';
+```
 
-### Tab 1 — Slitting Entry (new production-style)
-Keep all current fields, but rename/restructure:
-- Product Code
-- **Source Quantity** (manual) + **Unit selector** (sqmtr, mtr, kg, pcs, ltr, box/bundle)
-- **Roll Width (mm)** — fixed unit (renamed from "Cut Width")
-- **Produced Roll Length (mtr)** — per roll (renamed from "Cut Material Produced")
-- **No. of Rolls Produced**
-- **Thickness (mm)** + **GSM** (new)
-- **Auto-calculated Total Production** shown in a read-only tab:
-  - Formula: `(Roll Width × Roll Length / 1000) × No. of Rolls` → sqm
-  - Or, when GSM is available but length isn't: `(1000 / GSM) × Total kg = sqm`
+Notes:
+- Assumes `public.has_role(uuid, text)` and `public.is_admin(uuid)` already exist in the live backend (they do in the schema you're using here).
+- If your user account is missing the `slitting_manager` role in the live backend, the INSERT will still fail with an RLS error after the table exists. In that case also run, replacing the uuid with your `auth.users` id:
+  ```sql
+  INSERT INTO public.user_roles (user_id, role) VALUES ('<your-user-id>', 'slitting_manager')
+  ON CONFLICT DO NOTHING;
+  ```
 
-Remove the "Remaining Returned" field — it moves to Tab 2.
+### Step 2 — Add a friendlier client error (frontend-only)
 
-### Tab 2 — Material Return Entry
-Used after the 1–2 day order completes, when leftover material is returned.
+In `src/pages/slitting/Head36Entry.tsx`, when the insert returns code `PGRST205`, show a clearer toast: "36 Head table is not provisioned in the backend yet. Ask an admin to run the head36_entries setup SQL." This avoids the raw Supabase message and points future users to the right fix instead of looping.
 
-- Pick from a **list of past Slitting Entries** (shows product name, source qty, unit, date).
-- Display **Total Bought** (auto-pulled from the source entry).
-- **Returned Quantity** (manual) + Unit.
-- Auto-display **Used = Total Bought − Returned**.
-- Comparison badge:
-  - **Green** when `Total Used == Total Production from Tab 1`
-  - **Red** when mismatched
-- Saves a `slitting_return` row linked to the slitting entry.
+No other app code changes are required — the existing insert payload already matches the table schema above.
 
-### Tab 3 — 36 Head Production
-New panel for the next downstream step (takes rolls from slitting → produces on 36-head machine).
+### Step 3 — Verify
 
-Fields:
-- **Total Rolls Taken from Slitting** (pick from slitting outputs)
-- **Total Rolls Produced in 36 Head**
-- **Width of Roll/Tape**
-- **Length per Tape**
-- **Thickness + GSM**
-- **Unit selector** (same options as above)
-- **Auto-calculated Total Production tab** using the same formulae as slitting.
-
----
-
-## 4) Cross-cutting additions
-
-- **GSM** field added alongside Thickness at **every production level**: Production Entry, Slitting, 36 Head.
-- **Unit selector** added everywhere quantities are entered (sqmtr, mtr, kg, pcs, ltr, box/bundle).
-- **Auto-calculated Total Production** tab shown in Slitting and 36 Head panels (read-only, recomputed live).
-
----
-
-## Technical section (DB + UI)
-
-**Schema changes**:
-- `production_entries`: add `gsm numeric`, ensure `unit` selector covers new options. For Rope multi-thickness, no schema change — just multi-row insert client-side.
-- `production_entries`: add nullable `lab_report_included boolean default false`, `raw_material_included boolean default false` (for the Copper Tape product gating).
-- `slitting_entries`: add `gsm numeric`, drop `remaining_returned` usage from this table (kept for backward-compat) → returns now live in new table.
-- New table `slitting_returns`: `id, slitting_entry_id (fk), returned_quantity, unit, date, returned_by, notes`.
-- New table `head36_entries`: `id, slitting_entry_id (fk, nullable), rolls_taken, rolls_produced, roll_width_mm, roll_length_mtr, thickness_mm, gsm, unit, total_quantity (generated), date, operator_id, notes`. RLS mirroring slitting.
-
-**UI files**:
-- `src/pages/worker/ProductionEntry.tsx` — rope multi-thickness rows, copper-tape conditional sections, unit selector, GSM field.
-- `src/pages/slitting/SlittingEntry.tsx` — convert to 3-tab layout (Tabs component).
-- New `src/pages/slitting/MaterialReturn.tsx` and `src/pages/slitting/Head36Entry.tsx` mounted as tabs inside SlittingEntry, or as sibling routes.
-- `src/layouts/SlittingManagerLayout.tsx` — adjust nav if tabs are routes instead.
-- History pages updated to show new fields.
-
----
-
-## Open questions (please answer before I build)
-
-1. **Rope multi-thickness**: should each thickness row save as a separate `production_entries` record (easier for stock math), or one record with a nested JSON list?
-2. **36 Head Production** — who operates it? Same Slitting Manager role, or a new role?
-3. **Material Return**: should returned material **add back** to a raw-material stock balance, or just be recorded for the used/produced reconciliation?
-4. **GSM** — required field everywhere, or optional?
+1. Reload the 36 Head page.
+2. Pick a source slitting entry, fill rolls produced, submit.
+3. Expect a success toast and no 404 in network requests against `/rest/v1/head36_entries`.
