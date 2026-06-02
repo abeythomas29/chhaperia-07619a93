@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import SplashScreen from "@/components/SplashScreen";
+import AppUpdateBanner from "@/components/AppUpdateBanner";
 import { useState, useEffect } from "react";
 import { triggerSync } from "@/lib/offlineSync";
 import Login from "./pages/Login";
@@ -52,6 +53,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <AppUpdateBanner />
         {showSplash ? (
           <SplashScreen />
         ) : (
