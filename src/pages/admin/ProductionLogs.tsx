@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Download, Search, Pencil, Trash2, CalendarIcon, FlaskConical, Sigma } from "lucide-react";
+import { Download, Search, Pencil, Trash2, CalendarIcon, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,6 @@ export default function ProductionLogs() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
 
-
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -84,10 +83,8 @@ export default function ProductionLogs() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Lab report dialog
-  const [labEntry, setLabEntry] = useState<LogEntry | null>(null);
-  // Totals dialog
-  const [totalsEntry, setTotalsEntry] = useState<LogEntry | null>(null);
+  // Report dialog (was Lab Report + View Totals)
+  const [reportEntry, setReportEntry] = useState<LogEntry | null>(null);
 
   // Dropdowns
   const [productCodes, setProductCodes] = useState<ProductCode[]>([]);
@@ -349,20 +346,24 @@ export default function ProductionLogs() {
         )}
       </div>
 
-      <div className="border rounded-lg overflow-x-auto w-full">
+      <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">
                 <Checkbox checked={allFilteredSelected} onCheckedChange={toggleSelectAll} aria-label="Select all" />
               </TableHead>
-      <TableHead className="text-base">Date</TableHead>
+              <TableHead className="text-base">Date</TableHead>
               <TableHead>Product Code</TableHead>
               <TableHead>Production Manager</TableHead>
               <TableHead className="text-right">Rolls</TableHead>
               <TableHead className="text-right">Qty/Roll</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Unit</TableHead>
+              <TableHead className="text-right">Length (mtr)</TableHead>
+              <TableHead className="text-right">Area (sqm)</TableHead>
+              <TableHead className="text-right">Weight (kg)</TableHead>
+              <TableHead className="text-right">GSM</TableHead>
               <TableHead className="text-right">Thickness (mm)</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -370,14 +371,34 @@ export default function ProductionLogs() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
+                <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">Loading...</TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
+                <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">No entries found</TableCell>
               </TableRow>
             ) : (
-              filtered.map((e) => (
+              filtered.map((e) => {
+                const parseNum = (label: string) => {
+                  if (!e.notes) return 0;
+                  const m = e.notes.match(new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i"));
+                  return m ? parseFloat(m[1]) : 0;
+                };
+                const total = e.total_quantity ?? (e.rolls_count * e.quantity_per_roll);
+                const isMeters = e.unit === "meters";
+                const isKg = e.unit === "kg";
+                const lengthMtr = isMeters ? total : 0;
+                const width = parseNum("Width") || parseNum("RollWidth");
+                const gsm = e.gsm ?? parseNum("GSM");
+                const sqm = width > 0 && lengthMtr > 0 ? (width / 1000) * lengthMtr : 0;
+                const kg = isKg ? total : (gsm > 0 && sqm > 0 ? (sqm * gsm) / 1000 : 0);
+                const fmt = (n: number, d = 2) => n.toLocaleString(undefined, { maximumFractionDigits: d });
+                const hasReport =
+                  e.gsm != null || e.thickness_mm != null || e.tensile_strength != null || e.elongation != null ||
+                  e.swelling_height != null || e.swelling_speed != null || e.surface_resistance != null ||
+                  parseNum("GSM") || parseNum("Tensile") || parseNum("Elongation") ||
+                  parseNum("Swelling Height") || parseNum("Swelling Speed") || parseNum("Surface Resistance");
+                return (
                 <TableRow key={e.id} data-state={selectedIds.has(e.id) ? "selected" : undefined}>
                   <TableCell>
                     <Checkbox checked={selectedIds.has(e.id)} onCheckedChange={() => toggleSelect(e.id)} aria-label="Select row" />
@@ -389,46 +410,34 @@ export default function ProductionLogs() {
                   <TableCell className="text-right">{e.quantity_per_roll}</TableCell>
                   <TableCell className="text-right font-semibold">{e.total_quantity ?? "—"}</TableCell>
                   <TableCell>{e.unit}</TableCell>
+                  <TableCell className="text-right font-mono">{lengthMtr > 0 ? fmt(lengthMtr) : "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{sqm > 0 ? fmt(sqm) : "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{kg > 0 ? fmt(kg) : "—"}</TableCell>
+                  <TableCell className="text-right font-mono">{gsm > 0 ? gsm : "—"}</TableCell>
                   <TableCell className="text-right">{e.thickness_mm ?? "—"}</TableCell>
                   <TableCell className="text-right">
-                    {(() => {
-                      const parseNote = (label: string) => {
-                        if (!e.notes) return null;
-                        const re = new RegExp(`${label}\\s*:\\s*([\\d.]+)`, "i");
-                        const m = e.notes.match(re);
-                        return m ? m[1] : null;
-                      };
-                      const hasLab =
-                        e.gsm != null || e.tensile_strength != null || e.elongation != null ||
-                        e.swelling_height != null || e.swelling_speed != null || e.surface_resistance != null ||
-                        parseNote("GSM") || parseNote("Tensile") || parseNote("Elongation") ||
-                        parseNote("Swelling Height") || parseNote("Swelling Speed") || parseNote("Surface Resistance");
-                      return (
-                        <div className="flex justify-end gap-1">
-                          {hasLab && (
-                            <Button variant="ghost" size="icon" onClick={() => setLabEntry(e)} title="View Lab Report" className="text-primary hover:text-primary">
-                              <FlaskConical className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="icon" onClick={() => setTotalsEntry(e)} title="View Totals" className="text-primary hover:text-primary">
-                            <Sigma className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      );
-                    })()}
+                    <div className="flex justify-end gap-1">
+                      {hasReport && (
+                        <Button variant="ghost" size="icon" onClick={() => setReportEntry(e)} title="Report" className="text-primary hover:text-primary">
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(e)} title="Edit">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
 
       {/* Edit Dialog */}
       <Dialog open={!!editEntry} onOpenChange={(open) => !open && setEditEntry(null)}>
@@ -523,36 +532,37 @@ export default function ProductionLogs() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Lab Report Dialog */}
-      <Dialog open={!!labEntry} onOpenChange={(open) => !open && setLabEntry(null)}>
+      {/* Report Dialog */}
+      <Dialog open={!!reportEntry} onOpenChange={(open) => !open && setReportEntry(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FlaskConical className="h-5 w-5" /> Lab Report
+              <FileText className="h-5 w-5" /> Report
             </DialogTitle>
             <DialogDescription>
-              {labEntry?.product_codes?.code ?? "—"} · {labEntry ? format(new Date(labEntry.date), "dd/MM/yyyy") : ""}
+              {reportEntry?.product_codes?.code ?? "—"} · {reportEntry ? format(new Date(reportEntry.date), "dd/MM/yyyy") : ""}
             </DialogDescription>
           </DialogHeader>
-          {labEntry && (() => {
+          {reportEntry && (() => {
             const parseNote = (label: string) => {
-              if (!labEntry.notes) return null;
-              const re = new RegExp(`${label}\\s*:\\s*([\\d.]+)`, "i");
-              const m = labEntry.notes.match(re);
+              if (!reportEntry.notes) return null;
+              const re = new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i");
+              const m = reportEntry.notes.match(re);
               return m ? m[1] : null;
             };
             const get = (col: number | null | undefined, label: string) =>
               col != null ? String(col) : parseNote(label);
             const pairs: [string, string | null][] = [
-              ["GSM", get(labEntry.gsm, "GSM")],
-              ["Tensile Strength", get(labEntry.tensile_strength, "Tensile")],
-              ["Elongation", get(labEntry.elongation, "Elongation")],
-              ["Swelling Height", get(labEntry.swelling_height, "Swelling Height")],
-              ["Swelling Speed", get(labEntry.swelling_speed, "Swelling Speed")],
-              ["Surface Resistance", get(labEntry.surface_resistance, "Surface Resistance")],
+              ["GSM", get(reportEntry.gsm, "GSM")],
+              ["Thickness (mm)", reportEntry.thickness_mm != null ? String(reportEntry.thickness_mm) : parseNote("Thickness")],
+              ["Tensile Strength", get(reportEntry.tensile_strength, "Tensile")],
+              ["Elongation", get(reportEntry.elongation, "Elongation")],
+              ["Swelling Height", get(reportEntry.swelling_height, "Swelling Height")],
+              ["Swelling Speed", get(reportEntry.swelling_speed, "Swelling Speed")],
+              ["Surface Resistance", get(reportEntry.surface_resistance, "Surface Resistance")],
             ];
-            const rows = pairs.filter(([, v]) => v != null);
-            if (rows.length === 0) return <p className="text-muted-foreground text-sm">No lab data recorded.</p>;
+            const rows = pairs.filter(([, v]) => v != null && v !== "");
+            if (rows.length === 0) return <p className="text-muted-foreground text-sm">No report data recorded.</p>;
             return (
               <div className="divide-y border rounded-md">
                 {rows.map(([k, v]) => (
@@ -565,61 +575,11 @@ export default function ProductionLogs() {
             );
           })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLabEntry(null)}>Close</Button>
+            <Button variant="outline" onClick={() => setReportEntry(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Totals Dialog */}
-      <Dialog open={!!totalsEntry} onOpenChange={(open) => !open && setTotalsEntry(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sigma className="h-5 w-5" /> Auto-Calculated Totals
-            </DialogTitle>
-            <DialogDescription>
-              {totalsEntry?.product_codes?.code ?? "—"} · {totalsEntry ? format(new Date(totalsEntry.date), "dd/MM/yyyy") : ""}
-            </DialogDescription>
-          </DialogHeader>
-          {totalsEntry && (() => {
-            const parseNum = (label: string) => {
-              if (!totalsEntry.notes) return 0;
-              const m = totalsEntry.notes.match(new RegExp(`${label}\\s*[:\\-]*\\s*([\\d.]+)`, "i"));
-              return m ? parseFloat(m[1]) : 0;
-            };
-            const rolls = totalsEntry.rolls_count || 0;
-            const total = totalsEntry.total_quantity ?? (rolls * (totalsEntry.quantity_per_roll || 0));
-            const isMeters = totalsEntry.unit === "meters";
-            const isKg = totalsEntry.unit === "kg";
-            const lengthMtr = isMeters ? total : 0;
-            const width = parseNum("Width") || parseNum("RollWidth");
-            const gsm = totalsEntry.gsm ?? parseNum("GSM");
-            const sqm = width > 0 && lengthMtr > 0 ? (width / 1000) * lengthMtr : 0;
-            const kg = isKg ? total : (gsm > 0 && sqm > 0 ? (sqm * gsm) / 1000 : 0);
-            const fmt = (n: number, d = 2) => n.toLocaleString(undefined, { maximumFractionDigits: d });
-            const rows: [string, string][] = [
-              [`Total Quantity (${totalsEntry.unit})`, total > 0 ? `${fmt(total)} ${totalsEntry.unit}` : "—"],
-              ["Total Rolls", rolls > 0 ? fmt(rolls, 0) : "—"],
-              ["Total Length", lengthMtr > 0 ? `${fmt(lengthMtr)} mtr` : "—"],
-              ["Total Area", sqm > 0 ? `${fmt(sqm)} sqm` : "—"],
-              ["Total Weight", kg > 0 ? `${fmt(kg)} kg` : "—"],
-            ];
-            return (
-              <div className="divide-y border rounded-md">
-                {rows.map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-sm text-muted-foreground">{k}</span>
-                    <span className="font-mono font-semibold">{v}</span>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTotalsEntry(null)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, PackageOpen } from "lucide-react";
 import { UNIT_OPTIONS } from "@/lib/units";
 import { format } from "date-fns";
+import { queueOfflineEntry, isNetworkError } from "@/lib/offlineSync";
 
 interface SlittingRow {
   id: string;
@@ -31,24 +32,52 @@ export default function MaterialReturn() {
 
   const load = async () => {
     if (!user) return;
-    setLoading(true);
-    const { data: entryData } = await supabase
-      .from("slitting_entries")
-      .select("id, date, source_quantity, cut_quantity_produced, unit, product_codes(code)")
-      .order("date", { ascending: false })
-      .limit(100);
-    setEntries((entryData as unknown as SlittingRow[]) ?? []);
+    
+    // Instantly load from localStorage cache
+    const cachedEntries = localStorage.getItem("cache_mr_slitting_entries");
+    const cachedReturns = localStorage.getItem("cache_mr_returns");
+    if (cachedEntries) {
+      try {
+        setEntries(JSON.parse(cachedEntries));
+        setLoading(false);
+      } catch (e) {
+        console.error("Error parsing cached slitting entries", e);
+      }
+    }
+    if (cachedReturns) {
+      try {
+        setReturns(JSON.parse(cachedReturns));
+      } catch (e) {
+        console.error("Error parsing cached returns sums", e);
+      }
+    }
 
-    const { data: retData } = await supabase
-      .from("slitting_returns" as any)
-      .select("slitting_entry_id, returned_quantity")
-      .limit(2000);
-    const sums: Record<string, number> = {};
-    ((retData as any[]) ?? []).forEach((r) => {
-      sums[r.slitting_entry_id] = (sums[r.slitting_entry_id] ?? 0) + Number(r.returned_quantity ?? 0);
-    });
-    setReturns(sums);
-    setLoading(false);
+    try {
+      const { data: entryData } = await supabase
+        .from("slitting_entries")
+        .select("id, date, source_quantity, cut_quantity_produced, unit, product_codes(code)")
+        .order("date", { ascending: false })
+        .limit(100);
+      
+      const newEntries = (entryData as unknown as SlittingRow[]) ?? [];
+      setEntries(newEntries);
+      localStorage.setItem("cache_mr_slitting_entries", JSON.stringify(newEntries));
+
+      const { data: retData } = await supabase
+        .from("slitting_returns" as any)
+        .select("slitting_entry_id, returned_quantity")
+        .limit(2000);
+      const sums: Record<string, number> = {};
+      ((retData as any[]) ?? []).forEach((r) => {
+        sums[r.slitting_entry_id] = (sums[r.slitting_entry_id] ?? 0) + Number(r.returned_quantity ?? 0);
+      });
+      setReturns(sums);
+      localStorage.setItem("cache_mr_returns", JSON.stringify(sums));
+    } catch (err) {
+      console.error("Error querying material return online", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [user]);
@@ -69,21 +98,47 @@ export default function MaterialReturn() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("slitting_returns" as any).insert({
+
+    const payload = {
       slitting_entry_id: form.slitting_entry_id,
       returned_quantity: newReturn,
       unit: form.unit,
       notes: form.notes || null,
       returned_by: user.id,
-    } as any);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    };
+
+    let error = null;
+    let isQueuedOffline = false;
+
+    if (!navigator.onLine) {
+      queueOfflineEntry("slitting_returns", payload);
+      isQueuedOffline = true;
     } else {
-      toast({ title: "Return recorded" });
-      setForm({ slitting_entry_id: "", returned_quantity: "", unit: "meters", notes: "" });
-      await load();
+      try {
+        const res = await supabase.from("slitting_returns" as any).insert(payload as any);
+        error = res.error;
+      } catch (err) {
+        error = err;
+      }
+
+      if (error) {
+        if (isNetworkError(error)) {
+          queueOfflineEntry("slitting_returns", payload);
+          isQueuedOffline = true;
+        } else {
+          toast({ title: "Error", description: error.message || String(error), variant: "destructive" });
+          setSubmitting(false);
+          return;
+        }
+      }
     }
+
+    if (!isQueuedOffline) {
+      toast({ title: "Return recorded" });
+    }
+    setForm({ slitting_entry_id: "", returned_quantity: "", unit: "meters", notes: "" });
     setSubmitting(false);
+    await load();
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;

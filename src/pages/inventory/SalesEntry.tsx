@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getFinishedProductAvailable } from "@/lib/stock";
+import { queueOfflineEntry, isNetworkError } from "@/lib/offlineSync";
 
 interface RawMaterial { id: string; name: string; unit: string; current_stock: number; }
 interface ProductCode { id: string; code: string; }
@@ -45,14 +46,42 @@ export default function SalesEntry() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchAll = async () => {
-    const [m, p, c] = await Promise.all([
-      supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name"),
-      supabase.from("product_codes").select("id, code").eq("status", "active").order("code"),
-      supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
-    ]);
-    setMaterials(m.data ?? []);
-    setProducts(p.data ?? []);
-    setClients(c.data ?? []);
+    // Instantly load from localStorage cache
+    const cachedMaterials = localStorage.getItem("cache_sa_materials");
+    const cachedProducts = localStorage.getItem("cache_sa_products");
+    const cachedClients = localStorage.getItem("cache_sa_clients");
+
+    if (cachedMaterials) {
+      try { setMaterials(JSON.parse(cachedMaterials)); } catch (e) { console.error(e); }
+    }
+    if (cachedProducts) {
+      try { setProducts(JSON.parse(cachedProducts)); } catch (e) { console.error(e); }
+    }
+    if (cachedClients) {
+      try { setClients(JSON.parse(cachedClients)); } catch (e) { console.error(e); }
+    }
+
+    try {
+      const [m, p, c] = await Promise.all([
+        supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name"),
+        supabase.from("product_codes").select("id, code").eq("status", "active").order("code"),
+        supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
+      ]);
+      if (m.data) {
+        setMaterials(m.data);
+        localStorage.setItem("cache_sa_materials", JSON.stringify(m.data));
+      }
+      if (p.data) {
+        setProducts(p.data);
+        localStorage.setItem("cache_sa_products", JSON.stringify(p.data));
+      }
+      if (c.data) {
+        setClients(c.data);
+        localStorage.setItem("cache_sa_clients", JSON.stringify(c.data));
+      }
+    } catch (err) {
+      console.error("Error fetching sales dropdowns", err);
+    }
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -121,31 +150,53 @@ export default function SalesEntry() {
 
     setSubmitting(true);
 
-    // Block over-issue: validate available stock before insert
+    const isOffline = !navigator.onLine;
     const qtyNum = Number(quantity);
-    if (tab === "raw_material" && selectedMaterial && qtyNum > Number(selectedMaterial.current_stock)) {
+
+    if (isOffline) {
       toast({
-        title: "Insufficient stock",
-        description: `Only ${Number(selectedMaterial.current_stock).toLocaleString()} ${selectedMaterial.unit} available`,
-        variant: "destructive",
+        title: "Working Offline",
+        description: "Live stock validation has been bypassed. The sale will be queued locally.",
       });
-      setSubmitting(false);
-      return;
-    }
-    if (tab === "finished_product") {
-      const available = await getFinishedProductAvailable(productId);
-      if (qtyNum > available) {
+    } else {
+      // Block over-issue: validate available stock before insert (only online)
+      if (tab === "raw_material" && selectedMaterial && qtyNum > Number(selectedMaterial.current_stock)) {
         toast({
           title: "Insufficient stock",
-          description: `Only ${available.toLocaleString()} ${unit} available for this product`,
+          description: `Only ${Number(selectedMaterial.current_stock).toLocaleString()} ${selectedMaterial.unit} available`,
           variant: "destructive",
         });
         setSubmitting(false);
         return;
       }
+      if (tab === "finished_product") {
+        try {
+          const available = await getFinishedProductAvailable(productId);
+          if (qtyNum > available) {
+            toast({
+              title: "Insufficient stock",
+              description: `Only ${available.toLocaleString()} ${unit} available for this product`,
+              variant: "destructive",
+            });
+            setSubmitting(false);
+            return;
+          }
+        } catch (err) {
+          if (isNetworkError(err)) {
+            toast({
+              title: "Network Error",
+              description: "Could not perform live stock validation. Queuing sale locally.",
+            });
+          } else {
+            toast({ title: "Stock Check Error", description: String(err), variant: "destructive" });
+            setSubmitting(false);
+            return;
+          }
+        }
+      }
     }
 
-    const { error } = await supabase.from("sales").insert({
+    const payload = {
       date,
       client_id: useManualClient ? null : clientId,
       client_name: useManualClient ? manualClientName.trim() : null,
@@ -158,12 +209,32 @@ export default function SalesEntry() {
       thickness_mm: thickness ? Number(thickness) : null,
       notes: notes.trim() || null,
       sold_by: user.id,
-    } as any);
+    };
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      setSubmitting(false);
-      return;
+    let error = null;
+    let isQueuedOffline = false;
+
+    if (isOffline) {
+      queueOfflineEntry("sales", payload);
+      isQueuedOffline = true;
+    } else {
+      try {
+        const res = await supabase.from("sales").insert(payload as any);
+        error = res.error;
+      } catch (err) {
+        error = err;
+      }
+
+      if (error) {
+        if (isNetworkError(error)) {
+          queueOfflineEntry("sales", payload);
+          isQueuedOffline = true;
+        } else {
+          toast({ title: "Error", description: error.message || String(error), variant: "destructive" });
+          setSubmitting(false);
+          return;
+        }
+      }
     }
 
     setSubmitted(true);

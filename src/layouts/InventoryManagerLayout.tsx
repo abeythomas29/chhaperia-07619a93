@@ -4,6 +4,7 @@ import { Package, ArrowDownToLine, History, LogOut, Loader2, ShoppingCart, ListO
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import SyncStatusPill from "@/components/SyncStatusPill";
 
 export default function InventoryManagerLayout() {
   const { user, loading, signOut, profileName, isAdmin, isInventoryManager, isSlittingManager } = useAuth();
@@ -47,6 +48,7 @@ export default function InventoryManagerLayout() {
           <span className="hidden text-sm font-bold leading-tight sm:block">Chhaperia Cables</span>
         </Link>
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <SyncStatusPill />
           <div className="flex min-w-0 items-center gap-2 rounded-full bg-primary-foreground/10 px-2 py-1 sm:px-3">
             <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground text-xs font-bold">
               {(profileName ?? "U").charAt(0).toUpperCase()}

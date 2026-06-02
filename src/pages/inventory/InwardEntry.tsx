@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, CheckCircle, ArrowDownToLine } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { queueOfflineEntry, isNetworkError } from "@/lib/offlineSync";
 
 interface RawMaterial {
   id: string;
@@ -39,8 +40,25 @@ export default function InwardEntry() {
   const [newUnit, setNewUnit] = useState("kg");
 
   const fetchMaterials = async () => {
-    const { data } = await supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name");
-    setMaterials(data ?? []);
+    // Instantly load from localStorage cache
+    const cached = localStorage.getItem("cache_ie_materials");
+    if (cached) {
+      try {
+        setMaterials(JSON.parse(cached));
+      } catch (e) {
+        console.error("Error parsing cached raw materials", e);
+      }
+    }
+
+    try {
+      const { data } = await supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name");
+      if (data) {
+        setMaterials(data);
+        localStorage.setItem("cache_ie_materials", JSON.stringify(data));
+      }
+    } catch (err) {
+      console.error("Error fetching raw materials", err);
+    }
   };
 
   useEffect(() => { fetchMaterials(); }, []);
@@ -52,7 +70,7 @@ export default function InwardEntry() {
     if (!user || !materialId || !quantity) return;
     setSubmitting(true);
 
-    const { error } = await supabase.from("raw_material_stock_entries").insert({
+    const payload = {
       raw_material_id: materialId,
       quantity: Number(quantity),
       date,
@@ -62,12 +80,32 @@ export default function InwardEntry() {
       thickness_mm: thickness ? Number(thickness) : null,
       notes: notes || null,
       added_by: user.id,
-    } as any);
+    };
 
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      setSubmitting(false);
-      return;
+    let error = null;
+    let isQueuedOffline = false;
+
+    if (!navigator.onLine) {
+      queueOfflineEntry("raw_material_stock_entries", payload);
+      isQueuedOffline = true;
+    } else {
+      try {
+        const res = await supabase.from("raw_material_stock_entries").insert(payload as any);
+        error = res.error;
+      } catch (err) {
+        error = err;
+      }
+
+      if (error) {
+        if (isNetworkError(error)) {
+          queueOfflineEntry("raw_material_stock_entries", payload);
+          isQueuedOffline = true;
+        } else {
+          toast({ title: "Error", description: error.message || String(error), variant: "destructive" });
+          setSubmitting(false);
+          return;
+        }
+      }
     }
 
     setSubmitted(true);
@@ -88,14 +126,75 @@ export default function InwardEntry() {
 
   const addMaterial = async () => {
     if (!newName.trim()) return;
-    const { data, error } = await supabase.from("raw_materials").insert({ name: newName.trim(), unit: newUnit }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Material added" });
-    setAddOpen(false);
-    setNewName("");
-    setNewUnit("kg");
-    await fetchMaterials();
-    if (data) setMaterialId(data.id);
+
+    const tempId = `temp-mat-${Date.now()}`;
+    const newMat = {
+      id: tempId,
+      name: newName.trim(),
+      unit: newUnit,
+      current_stock: 0,
+    };
+
+    if (!navigator.onLine) {
+      // Offline behavior
+      queueOfflineEntry("raw_materials", { name: newName.trim(), unit: newUnit }, tempId);
+      
+      // Update local state
+      const updatedMaterials = [...materials, newMat].sort((a, b) => a.name.localeCompare(b.name));
+      setMaterials(updatedMaterials);
+      localStorage.setItem("cache_ie_materials", JSON.stringify(updatedMaterials));
+      
+      setMaterialId(tempId);
+      setAddOpen(false);
+      setNewName("");
+      setNewUnit("kg");
+      toast({ title: "Material added offline" });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.from("raw_materials").insert({ name: newName.trim(), unit: newUnit }).select().single();
+      if (error) {
+        if (isNetworkError(error)) {
+          queueOfflineEntry("raw_materials", { name: newName.trim(), unit: newUnit }, tempId);
+          
+          const updatedMaterials = [...materials, newMat].sort((a, b) => a.name.localeCompare(b.name));
+          setMaterials(updatedMaterials);
+          localStorage.setItem("cache_ie_materials", JSON.stringify(updatedMaterials));
+          
+          setMaterialId(tempId);
+          setAddOpen(false);
+          setNewName("");
+          setNewUnit("kg");
+          toast({ title: "Material added offline" });
+          return;
+        }
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Material added" });
+      setAddOpen(false);
+      setNewName("");
+      setNewUnit("kg");
+      await fetchMaterials();
+      if (data) setMaterialId(data.id);
+    } catch (err) {
+      if (isNetworkError(err)) {
+        queueOfflineEntry("raw_materials", { name: newName.trim(), unit: newUnit }, tempId);
+        
+        const updatedMaterials = [...materials, newMat].sort((a, b) => a.name.localeCompare(b.name));
+        setMaterials(updatedMaterials);
+        localStorage.setItem("cache_ie_materials", JSON.stringify(updatedMaterials));
+        
+        setMaterialId(tempId);
+        setAddOpen(false);
+        setNewName("");
+        setNewUnit("kg");
+        toast({ title: "Material added offline" });
+      } else {
+        toast({ title: "Error", description: String(err), variant: "destructive" });
+      }
+    }
   };
 
   if (submitted) {

@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import { Loader2 } from "lucide-react";
+import SyncStatusPill from "@/components/SyncStatusPill";
 
 export default function AdminLayout() {
   const { user, role, loading, isAdmin } = useAuth();
@@ -23,9 +24,12 @@ export default function AdminLayout() {
       <div className="min-h-screen flex w-full">
         <AdminSidebar />
         <main className="flex-1 flex flex-col">
-          <header className="h-14 border-b flex items-center px-4 bg-card">
-            <SidebarTrigger />
-            <h2 className="ml-3 text-lg font-semibold text-foreground">Admin Panel</h2>
+          <header className="h-14 border-b flex items-center justify-between px-4 bg-card">
+            <div className="flex items-center">
+              <SidebarTrigger />
+              <h2 className="ml-3 text-lg font-semibold text-foreground">Admin Panel</h2>
+            </div>
+            <SyncStatusPill />
           </header>
           <div className="flex-1 p-6">
             <Outlet />

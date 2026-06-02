@@ -13,6 +13,7 @@ import { Plus, CheckCircle, Loader2, Trash2, ChevronDown, Package, Layers } from
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { UNIT_OPTIONS } from "@/lib/units";
+import { queueOfflineEntry, isNetworkError } from "@/lib/offlineSync";
 
 interface ThicknessRow { thickness_mm: string; rolls_count: string; quantity_per_roll: string; }
 
@@ -75,19 +76,56 @@ export default function ProductionEntry() {
   const [materialsOpen, setMaterialsOpen] = useState(false);
 
   const fetchData = async () => {
-    const [codesRes, catsRes, clientsRes, matsRes] = await Promise.all([
-      supabase.from("product_codes").select("id, code, category_id").eq("status", "active").order("code"),
-      supabase.from("product_categories").select("id, name").eq("status", "active").order("name"),
-      supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
-      supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name"),
-    ]);
-    setProductCodes(codesRes.data ?? []);
-    setCategories(catsRes.data ?? []);
-    setClients(clientsRes.data ?? []);
-    setRawMaterials(matsRes.data ?? []);
+    try {
+      const [codesRes, catsRes, clientsRes, matsRes] = await Promise.all([
+        supabase.from("product_codes").select("id, code, category_id").eq("status", "active").order("code"),
+        supabase.from("product_categories").select("id, name").eq("status", "active").order("name"),
+        supabase.from("company_clients").select("id, name").eq("status", "active").order("name"),
+        supabase.from("raw_materials").select("id, name, unit, current_stock").eq("status", "active").order("name"),
+      ]);
+
+      if (codesRes.data) {
+        setProductCodes(codesRes.data);
+        localStorage.setItem("cache_pe_product_codes", JSON.stringify(codesRes.data));
+      }
+      if (catsRes.data) {
+        setCategories(catsRes.data);
+        localStorage.setItem("cache_pe_categories", JSON.stringify(catsRes.data));
+      }
+      if (clientsRes.data) {
+        setClients(clientsRes.data);
+        localStorage.setItem("cache_pe_clients", JSON.stringify(clientsRes.data));
+      }
+      if (matsRes.data) {
+        setRawMaterials(matsRes.data);
+        localStorage.setItem("cache_pe_raw_materials", JSON.stringify(matsRes.data));
+      }
+    } catch (e) {
+      console.warn("Failed to fetch production entries dropdowns, loading local cache fallback", e);
+      loadCachedData();
+    }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const loadCachedData = () => {
+    try {
+      const cachedCodes = localStorage.getItem("cache_pe_product_codes");
+      const cachedCats = localStorage.getItem("cache_pe_categories");
+      const cachedClients = localStorage.getItem("cache_pe_clients");
+      const cachedMats = localStorage.getItem("cache_pe_raw_materials");
+
+      if (cachedCodes) setProductCodes(JSON.parse(cachedCodes));
+      if (cachedCats) setCategories(JSON.parse(cachedCats));
+      if (cachedClients) setClients(JSON.parse(cachedClients));
+      if (cachedMats) setRawMaterials(JSON.parse(cachedMats));
+    } catch (err) {
+      console.error("Failed to load cached dropdown values", err);
+    }
+  };
+
+  useEffect(() => {
+    loadCachedData();
+    fetchData();
+  }, []);
 
   const totalQuantity = (Number(form.rolls_count) || 0) * (Number(form.quantity_per_roll) || 0);
 
@@ -148,7 +186,6 @@ export default function ProductionEntry() {
 
     const baseExtras: Record<string, unknown> = { client_id: form.client_id || null };
     if (combinedNotes) baseExtras.notes = combinedNotes;
-    // lab_report_included / raw_material_included are UI-only toggles; not persisted
 
     const rowsToInsert = useMultiThickness
       ? validRopeRows.map((r) => ({
@@ -172,81 +209,258 @@ export default function ProductionEntry() {
           ...baseExtras,
         }];
 
-    const { data: entries, error } = await supabase
-      .from("production_entries")
-      .insert(rowsToInsert as any)
-      .select("id");
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      setSubmitting(false);
-      return;
-    }
-    const entry = entries?.[0];
-    if (!entry) {
-      toast({ title: "Error", description: "Insert returned no rows", variant: "destructive" });
-      setSubmitting(false);
-      return;
-    }
-
-    // Insert optional raw material usage rows
     const validUsage = materialUsage.filter((r) => r.raw_material_id && Number(r.quantity_used) > 0);
-    if (validUsage.length > 0) {
-      const usageRows = validUsage.map((r) => ({
-        production_entry_id: entry.id,
-        raw_material_id: r.raw_material_id,
-        quantity_used: Number(r.quantity_used),
-      }));
-      const { error: usageError } = await supabase.from("raw_material_usage").insert(usageRows);
-      if (usageError) {
-        toast({ title: "Warning", description: "Production saved but material usage failed: " + usageError.message, variant: "destructive" });
+
+    // Local helper to queue production entry + material usage offline
+    const queueOfflineProduction = () => {
+      const entriesToQueue = rowsToInsert.map((row) => {
+        const tempPeId = `temp-pe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        return {
+          tempId: tempPeId,
+          row,
+        };
+      });
+
+      // Queue parent entries
+      entriesToQueue.forEach(({ tempId, row }) => {
+        queueOfflineEntry("production_entries", row, tempId);
+      });
+
+      // Queue raw material usage entries, mapping them to the first parent entry temporary ID
+      const parentTempId = entriesToQueue[0]?.tempId;
+      if (parentTempId && validUsage.length > 0) {
+        validUsage.forEach((r) => {
+          const usageRow = {
+            production_entry_id: parentTempId,
+            raw_material_id: r.raw_material_id,
+            quantity_used: Number(r.quantity_used),
+          };
+          queueOfflineEntry("raw_material_usage", usageRow);
+        });
+      }
+
+      setSubmitted(true);
+      setTimeout(() => {
+        setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", gsm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "", surface_resistance: "", lab_report_included: false, raw_material_included: false });
+        setThicknessRows([]);
+        setSelectedCategory("");
+        setMaterialUsage([]);
+        setMaterialsOpen(false);
+        setSubmitted(false);
+      }, 2000);
+      setSubmitting(false);
+    };
+
+    if (!navigator.onLine) {
+      queueOfflineProduction();
+      return;
+    }
+
+    try {
+      const { data: entries, error } = await supabase
+        .from("production_entries")
+        .insert(rowsToInsert as any)
+        .select("id");
+
+      if (error) {
+        if (isNetworkError(error)) {
+          queueOfflineProduction();
+          return;
+        }
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+      
+      const entry = entries?.[0];
+      if (!entry) {
+        toast({ title: "Error", description: "Insert returned no rows", variant: "destructive" });
+        setSubmitting(false);
+        return;
+      }
+
+      // Insert optional raw material usage rows
+      if (validUsage.length > 0) {
+        const usageRows = validUsage.map((r) => ({
+          production_entry_id: entry.id,
+          raw_material_id: r.raw_material_id,
+          quantity_used: Number(r.quantity_used),
+        }));
+        const { error: usageError } = await supabase.from("raw_material_usage").insert(usageRows);
+        if (usageError) {
+          toast({ title: "Warning", description: "Production saved but material usage failed: " + usageError.message, variant: "destructive" });
+        }
+      }
+
+      setSubmitted(true);
+      setTimeout(() => {
+        setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", gsm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "", surface_resistance: "", lab_report_included: false, raw_material_included: false });
+        setThicknessRows([]);
+        setSelectedCategory("");
+        setMaterialUsage([]);
+        setMaterialsOpen(false);
+        setSubmitted(false);
+      }, 2000);
+      setSubmitting(false);
+    } catch (err) {
+      if (isNetworkError(err)) {
+        queueOfflineProduction();
+      } else {
+        toast({ title: "Error", description: "An unexpected error occurred during submission." });
+        setSubmitting(false);
       }
     }
-
-    setSubmitted(true);
-    setTimeout(() => {
-      setForm({ date: format(new Date(), "yyyy-MM-dd"), product_code_id: "", client_id: "", rolls_count: "", quantity_per_roll: "", unit: "meters", thickness_mm: "", gsm: "", notes: "", swelling_speed: "", swelling_height: "", tensile_strength: "", elongation: "", surface_resistance: "", lab_report_included: false, raw_material_included: false });
-      setThicknessRows([]);
-      setSelectedCategory("");
-      setMaterialUsage([]);
-      setMaterialsOpen(false);
-      setSubmitted(false);
-    }, 2000);
-    setSubmitting(false);
   };
 
   const addCategory = async () => {
     if (!newCategoryName.trim()) return;
-    const { data, error } = await supabase.from("product_categories").insert({ name: newCategoryName.trim() }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Category added" });
-    setCategoryDialogOpen(false);
-    setNewCategoryName("");
-    await fetchData();
-    if (data) { setNewProductCat(data.id); setSelectedCategory(data.id); }
+    const isOnline = navigator.onLine;
+
+    if (!isOnline) {
+      const tempId = `temp-cat-${Date.now()}`;
+      const fakeCategory = { id: tempId, name: newCategoryName.trim() };
+      const newCats = [...categories, fakeCategory];
+      setCategories(newCats);
+      localStorage.setItem("cache_pe_categories", JSON.stringify(newCats));
+
+      queueOfflineEntry("product_categories", { name: newCategoryName.trim() }, tempId);
+      toast({ title: "Saved offline", description: "Category will sync automatically." });
+      setCategoryDialogOpen(false);
+      setNewCategoryName("");
+      setNewProductCat(tempId);
+      setSelectedCategory(tempId);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.from("product_categories").insert({ name: newCategoryName.trim() }).select().single();
+      if (error) {
+        if (isNetworkError(error)) {
+          const tempId = `temp-cat-${Date.now()}`;
+          const fakeCategory = { id: tempId, name: newCategoryName.trim() };
+          const newCats = [...categories, fakeCategory];
+          setCategories(newCats);
+          localStorage.setItem("cache_pe_categories", JSON.stringify(newCats));
+          queueOfflineEntry("product_categories", { name: newCategoryName.trim() }, tempId);
+          toast({ title: "Saved offline", description: "Category queued for sync." });
+          setCategoryDialogOpen(false);
+          setNewCategoryName("");
+          setNewProductCat(tempId);
+          setSelectedCategory(tempId);
+          return;
+        }
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Category added" });
+      setCategoryDialogOpen(false);
+      setNewCategoryName("");
+      await fetchData();
+      if (data) { setNewProductCat(data.id); setSelectedCategory(data.id); }
+    } catch (err) {
+      toast({ title: "Error adding category" });
+    }
   };
 
   const addProductCode = async () => {
     if (!newProductCode.trim() || !newProductCat) return;
-    const { data, error } = await supabase.from("product_codes").insert({ code: newProductCode.trim(), category_id: newProductCat }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Product code added" });
-    setProductDialogOpen(false);
-    setNewProductCode("");
-    setNewProductCat("");
-    await fetchData();
-    if (data) { setSelectedCategory(data.category_id); setForm((f) => ({ ...f, product_code_id: data.id })); }
+    const isOnline = navigator.onLine;
+
+    if (!isOnline) {
+      const tempId = `temp-pc-${Date.now()}`;
+      const fakeCode = { id: tempId, code: newProductCode.trim(), category_id: newProductCat };
+      const newCodes = [...productCodes, fakeCode];
+      setProductCodes(newCodes);
+      localStorage.setItem("cache_pe_product_codes", JSON.stringify(newCodes));
+
+      queueOfflineEntry("product_codes", { code: newProductCode.trim(), category_id: newProductCat }, tempId);
+      toast({ title: "Saved offline", description: "Product code will sync automatically." });
+      setProductDialogOpen(false);
+      setNewProductCode("");
+      setNewProductCat("");
+      setSelectedCategory(newProductCat);
+      setForm((f) => ({ ...f, product_code_id: tempId }));
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.from("product_codes").insert({ code: newProductCode.trim(), category_id: newProductCat }).select().single();
+      if (error) {
+        if (isNetworkError(error)) {
+          const tempId = `temp-pc-${Date.now()}`;
+          const fakeCode = { id: tempId, code: newProductCode.trim(), category_id: newProductCat };
+          const newCodes = [...productCodes, fakeCode];
+          setProductCodes(newCodes);
+          localStorage.setItem("cache_pe_product_codes", JSON.stringify(newCodes));
+          queueOfflineEntry("product_codes", { code: newProductCode.trim(), category_id: newProductCat }, tempId);
+          toast({ title: "Saved offline", description: "Product code queued for sync." });
+          setProductDialogOpen(false);
+          setNewProductCode("");
+          setNewProductCat("");
+          setSelectedCategory(newProductCat);
+          setForm((f) => ({ ...f, product_code_id: tempId }));
+          return;
+        }
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Product code added" });
+      setProductDialogOpen(false);
+      setNewProductCode("");
+      setNewProductCat("");
+      await fetchData();
+      if (data) { setSelectedCategory(data.category_id); setForm((f) => ({ ...f, product_code_id: data.id })); }
+    } catch (err) {
+      toast({ title: "Error adding product code" });
+    }
   };
 
   const addClient = async () => {
     if (!newClientName.trim()) return;
-    const { data, error } = await supabase.from("company_clients").insert({ name: newClientName.trim() }).select().single();
-    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Client added" });
-    setClientDialogOpen(false);
-    setNewClientName("");
-    await fetchData();
-    if (data) setForm((f) => ({ ...f, client_id: data.id }));
+    const isOnline = navigator.onLine;
+
+    if (!isOnline) {
+      const tempId = `temp-client-${Date.now()}`;
+      const fakeClient = { id: tempId, name: newClientName.trim() };
+      const newClients = [...clients, fakeClient];
+      setClients(newClients);
+      localStorage.setItem("cache_pe_clients", JSON.stringify(newClients));
+
+      queueOfflineEntry("company_clients", { name: newClientName.trim() }, tempId);
+      toast({ title: "Saved offline", description: "Client will sync automatically." });
+      setClientDialogOpen(false);
+      setNewClientName("");
+      setForm((f) => ({ ...f, client_id: tempId }));
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.from("company_clients").insert({ name: newClientName.trim() }).select().single();
+      if (error) {
+        if (isNetworkError(error)) {
+          const tempId = `temp-client-${Date.now()}`;
+          const fakeClient = { id: tempId, name: newClientName.trim() };
+          const newClients = [...clients, fakeClient];
+          setClients(newClients);
+          localStorage.setItem("cache_pe_clients", JSON.stringify(newClients));
+          queueOfflineEntry("company_clients", { name: newClientName.trim() }, tempId);
+          toast({ title: "Saved offline", description: "Client queued for sync." });
+          setClientDialogOpen(false);
+          setNewClientName("");
+          setForm((f) => ({ ...f, client_id: tempId }));
+          return;
+        }
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Client added" });
+      setClientDialogOpen(false);
+      setNewClientName("");
+      await fetchData();
+      if (data) setForm((f) => ({ ...f, client_id: data.id }));
+    } catch (err) {
+      toast({ title: "Error adding client" });
+    }
   };
 
   if (submitted) {

@@ -1,0 +1,9 @@
+{
+	"appId": "com.chhaperia.app",
+	"appName": "ChhaperiaApp",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": false
+	}
+}

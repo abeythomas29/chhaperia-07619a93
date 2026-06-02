@@ -1,0 +1,328 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.chhaperia.app"
+4    android:versionCode="10"
+5    android:versionName="1.9" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="36" />
+10
+11    <!-- Permissions -->
+12
+13    <uses-permission android:name="android.permission.INTERNET" />
+13-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:34:5-67
+13-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:34:22-64
+14    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+14-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:22:5-79
+14-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:22:22-76
+15    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+15-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:23:5-77
+15-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:23:22-74
+16    <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required by older versions of Google Play services to create IID tokens -->
+16-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:24:5-68
+16-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:24:22-65
+17    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+17-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:26:5-82
+17-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:26:22-79
+18
+19    <permission
+19-->[androidx.core:core:1.17.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/11094a199bb7945826b161d8a9c17beb/transformed/core-1.17.0/AndroidManifest.xml:22:5-24:47
+20        android:name="com.chhaperia.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+20-->[androidx.core:core:1.17.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/11094a199bb7945826b161d8a9c17beb/transformed/core-1.17.0/AndroidManifest.xml:23:9-81
+21        android:protectionLevel="signature" />
+21-->[androidx.core:core:1.17.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/11094a199bb7945826b161d8a9c17beb/transformed/core-1.17.0/AndroidManifest.xml:24:9-44
+22
+23    <uses-permission android:name="com.chhaperia.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+23-->[androidx.core:core:1.17.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/11094a199bb7945826b161d8a9c17beb/transformed/core-1.17.0/AndroidManifest.xml:26:5-97
+23-->[androidx.core:core:1.17.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/11094a199bb7945826b161d8a9c17beb/transformed/core-1.17.0/AndroidManifest.xml:26:22-94
+24
+25    <application
+25-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:3:5-30:19
+26        android:allowBackup="true"
+26-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:4:9-35
+27        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+27-->[androidx.core:core:1.17.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/11094a199bb7945826b161d8a9c17beb/transformed/core-1.17.0/AndroidManifest.xml:28:18-86
+28        android:debuggable="true"
+29        android:extractNativeLibs="false"
+30        android:icon="@mipmap/ic_launcher"
+30-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:5:9-43
+31        android:label="@string/app_name"
+31-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:6:9-41
+32        android:roundIcon="@mipmap/ic_launcher_round"
+32-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:7:9-54
+33        android:supportsRtl="true"
+33-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:8:9-35
+34        android:testOnly="true"
+35        android:theme="@style/AppTheme" >
+35-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:9:9-40
+36        <activity
+36-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:10:9-21:20
+37            android:name="com.chhaperia.app.MainActivity"
+37-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:12:13-41
+38            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+38-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:11:13-148
+39            android:exported="true"
+39-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:16:13-36
+40            android:label="@string/title_activity_main"
+40-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:13:13-56
+41            android:launchMode="singleTask"
+41-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:15:13-44
+42            android:theme="@style/AppTheme.NoActionBarLaunch" >
+42-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:14:13-62
+43            <intent-filter>
+43-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:17:13-20:29
+44                <action android:name="android.intent.action.MAIN" />
+44-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:18:17-69
+44-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:18:25-66
+45
+46                <category android:name="android.intent.category.LAUNCHER" />
+46-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:19:17-77
+46-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:19:27-74
+47            </intent-filter>
+48        </activity>
+49
+50        <provider
+51            android:name="androidx.core.content.FileProvider"
+51-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:24:13-62
+52            android:authorities="com.chhaperia.app.fileprovider"
+52-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:25:13-64
+53            android:exported="false"
+53-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:26:13-37
+54            android:grantUriPermissions="true" >
+54-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:27:13-47
+55            <meta-data
+55-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:28:13-112
+56                android:name="android.support.FILE_PROVIDER_PATHS"
+56-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:28:24-74
+57                android:resource="@xml/file_paths" />
+57-->/Users/abeythomas/game development/chhaperia-app/android/app/src/main/AndroidManifest.xml:28:75-109
+58        </provider>
+59
+60        <service
+60-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:9-14:19
+61            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
+61-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:13-86
+62            android:exported="false" >
+62-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:13-37
+63            <intent-filter>
+63-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-13:29
+64                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+64-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:17-78
+64-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:25-75
+65            </intent-filter>
+66        </service>
+67
+68        <receiver
+68-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:29:9-40:20
+69            android:name="com.google.firebase.iid.FirebaseInstanceIdReceiver"
+69-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:30:13-78
+70            android:exported="true"
+70-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:31:13-36
+71            android:permission="com.google.android.c2dm.permission.SEND" >
+71-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:32:13-73
+72            <intent-filter>
+72-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:33:13-35:29
+73                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+73-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:34:17-81
+73-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:34:25-78
+74            </intent-filter>
+75
+76            <meta-data
+76-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:37:13-39:40
+77                android:name="com.google.android.gms.cloudmessaging.FINISHED_AFTER_HANDLED"
+77-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:38:17-92
+78                android:value="true" />
+78-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:39:17-37
+79        </receiver>
+80        <!--
+81             FirebaseMessagingService performs security checks at runtime,
+82             but set to not exported to explicitly avoid allowing another app to call it.
+83        -->
+84        <service
+84-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:46:9-53:19
+85            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+85-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:47:13-82
+86            android:directBootAware="true"
+86-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:48:13-43
+87            android:exported="false" >
+87-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:49:13-37
+88            <intent-filter android:priority="-500" >
+88-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-13:29
+89                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+89-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:17-78
+89-->[:capacitor-push-notifications] /Users/abeythomas/game development/chhaperia-app/node_modules/@capacitor/push-notifications/android/build/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:25-75
+90            </intent-filter>
+91        </service>
+92        <service
+92-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:54:9-63:19
+93            android:name="com.google.firebase.components.ComponentDiscoveryService"
+93-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:55:13-84
+94            android:directBootAware="true"
+94-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:32:13-43
+95            android:exported="false" >
+95-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:56:13-37
+96            <meta-data
+96-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:57:13-59:85
+97                android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingKtxRegistrar"
+97-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:58:17-122
+98                android:value="com.google.firebase.components.ComponentRegistrar" />
+98-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:59:17-82
+99            <meta-data
+99-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:60:13-62:85
+100                android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingRegistrar"
+100-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:61:17-119
+101                android:value="com.google.firebase.components.ComponentRegistrar" />
+101-->[com.google.firebase:firebase-messaging:25.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/fee7827030cf30b9c64fc7d59fae02bb/transformed/firebase-messaging-25.0.1/AndroidManifest.xml:62:17-82
+102            <meta-data
+102-->[com.google.firebase:firebase-installations:18.0.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/df907beae055c1d2434697ac5cd0594d/transformed/firebase-installations-18.0.0/AndroidManifest.xml:15:13-17:85
+103                android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsKtxRegistrar"
+103-->[com.google.firebase:firebase-installations:18.0.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/df907beae055c1d2434697ac5cd0594d/transformed/firebase-installations-18.0.0/AndroidManifest.xml:16:17-130
+104                android:value="com.google.firebase.components.ComponentRegistrar" />
+104-->[com.google.firebase:firebase-installations:18.0.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/df907beae055c1d2434697ac5cd0594d/transformed/firebase-installations-18.0.0/AndroidManifest.xml:17:17-82
+105            <meta-data
+105-->[com.google.firebase:firebase-installations:18.0.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/df907beae055c1d2434697ac5cd0594d/transformed/firebase-installations-18.0.0/AndroidManifest.xml:18:13-20:85
+106                android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsRegistrar"
+106-->[com.google.firebase:firebase-installations:18.0.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/df907beae055c1d2434697ac5cd0594d/transformed/firebase-installations-18.0.0/AndroidManifest.xml:19:17-127
+107                android:value="com.google.firebase.components.ComponentRegistrar" />
+107-->[com.google.firebase:firebase-installations:18.0.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/df907beae055c1d2434697ac5cd0594d/transformed/firebase-installations-18.0.0/AndroidManifest.xml:20:17-82
+108            <meta-data
+108-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:35:13-37:85
+109                android:name="com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar"
+109-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:36:17-109
+110                android:value="com.google.firebase.components.ComponentRegistrar" />
+110-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:37:17-82
+111            <meta-data
+111-->[com.google.firebase:firebase-datatransport:18.2.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/37804962654ec3e9f031e2012e83e63f/transformed/firebase-datatransport-18.2.0/AndroidManifest.xml:25:13-27:85
+112                android:name="com.google.firebase.components:com.google.firebase.datatransport.TransportRegistrar"
+112-->[com.google.firebase:firebase-datatransport:18.2.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/37804962654ec3e9f031e2012e83e63f/transformed/firebase-datatransport-18.2.0/AndroidManifest.xml:26:17-115
+113                android:value="com.google.firebase.components.ComponentRegistrar" />
+113-->[com.google.firebase:firebase-datatransport:18.2.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/37804962654ec3e9f031e2012e83e63f/transformed/firebase-datatransport-18.2.0/AndroidManifest.xml:27:17-82
+114        </service>
+115
+116        <activity
+116-->[com.google.android.gms:play-services-base:18.1.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/4aef5d6dbfa2eab3e0cf75d9b9b7eb7a/transformed/play-services-base-18.1.0/AndroidManifest.xml:20:9-22:45
+117            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+117-->[com.google.android.gms:play-services-base:18.1.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/4aef5d6dbfa2eab3e0cf75d9b9b7eb7a/transformed/play-services-base-18.1.0/AndroidManifest.xml:20:19-85
+118            android:exported="false"
+118-->[com.google.android.gms:play-services-base:18.1.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/4aef5d6dbfa2eab3e0cf75d9b9b7eb7a/transformed/play-services-base-18.1.0/AndroidManifest.xml:22:19-43
+119            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+119-->[com.google.android.gms:play-services-base:18.1.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/4aef5d6dbfa2eab3e0cf75d9b9b7eb7a/transformed/play-services-base-18.1.0/AndroidManifest.xml:21:19-78
+120
+121        <provider
+121-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:23:9-28:39
+122            android:name="com.google.firebase.provider.FirebaseInitProvider"
+122-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:24:13-77
+123            android:authorities="com.chhaperia.app.firebaseinitprovider"
+123-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:25:13-72
+124            android:directBootAware="true"
+124-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:26:13-43
+125            android:exported="false"
+125-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:27:13-37
+126            android:initOrder="100" />
+126-->[com.google.firebase:firebase-common:22.0.1] /Users/abeythomas/.gradle/caches/8.14.3/transforms/cb546919c09df4bb1e2d2127157bcaa2/transformed/firebase-common-22.0.1/AndroidManifest.xml:28:13-36
+127        <provider
+127-->[androidx.emoji2:emoji2:1.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/353d69426d62513a7e19e841051a3a44/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+128            android:name="androidx.startup.InitializationProvider"
+128-->[androidx.emoji2:emoji2:1.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/353d69426d62513a7e19e841051a3a44/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+129            android:authorities="com.chhaperia.app.androidx-startup"
+129-->[androidx.emoji2:emoji2:1.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/353d69426d62513a7e19e841051a3a44/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+130            android:exported="false" >
+130-->[androidx.emoji2:emoji2:1.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/353d69426d62513a7e19e841051a3a44/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+131            <meta-data
+131-->[androidx.emoji2:emoji2:1.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/353d69426d62513a7e19e841051a3a44/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+132                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+132-->[androidx.emoji2:emoji2:1.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/353d69426d62513a7e19e841051a3a44/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+133                android:value="androidx.startup" />
+133-->[androidx.emoji2:emoji2:1.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/353d69426d62513a7e19e841051a3a44/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+134            <meta-data
+134-->[androidx.lifecycle:lifecycle-process:2.6.2] /Users/abeythomas/.gradle/caches/8.14.3/transforms/14a3b51da1167f75215e7e32d2231e74/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:29:13-31:52
+135                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+135-->[androidx.lifecycle:lifecycle-process:2.6.2] /Users/abeythomas/.gradle/caches/8.14.3/transforms/14a3b51da1167f75215e7e32d2231e74/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:30:17-78
+136                android:value="androidx.startup" />
+136-->[androidx.lifecycle:lifecycle-process:2.6.2] /Users/abeythomas/.gradle/caches/8.14.3/transforms/14a3b51da1167f75215e7e32d2231e74/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:31:17-49
+137            <meta-data
+137-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:29:13-31:52
+138                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+138-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:30:17-85
+139                android:value="androidx.startup" />
+139-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:31:17-49
+140        </provider>
+141
+142        <meta-data
+142-->[com.google.android.gms:play-services-basement:18.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/114baedee36b8bdac268f5386a7e6897/transformed/play-services-basement-18.3.0/AndroidManifest.xml:21:9-23:69
+143            android:name="com.google.android.gms.version"
+143-->[com.google.android.gms:play-services-basement:18.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/114baedee36b8bdac268f5386a7e6897/transformed/play-services-basement-18.3.0/AndroidManifest.xml:22:13-58
+144            android:value="@integer/google_play_services_version" />
+144-->[com.google.android.gms:play-services-basement:18.3.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/114baedee36b8bdac268f5386a7e6897/transformed/play-services-basement-18.3.0/AndroidManifest.xml:23:13-66
+145
+146        <receiver
+146-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:34:9-52:20
+147            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+147-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:35:13-76
+148            android:directBootAware="false"
+148-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:36:13-44
+149            android:enabled="true"
+149-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:37:13-35
+150            android:exported="true"
+150-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:38:13-36
+151            android:permission="android.permission.DUMP" >
+151-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:39:13-57
+152            <intent-filter>
+152-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:40:13-42:29
+153                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+153-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:17-91
+153-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:41:25-88
+154            </intent-filter>
+155            <intent-filter>
+155-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:43:13-45:29
+156                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+156-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:17-85
+156-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:44:25-82
+157            </intent-filter>
+158            <intent-filter>
+158-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:46:13-48:29
+159                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+159-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:17-88
+159-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:47:25-85
+160            </intent-filter>
+161            <intent-filter>
+161-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:49:13-51:29
+162                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+162-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:17-95
+162-->[androidx.profileinstaller:profileinstaller:1.4.0] /Users/abeythomas/.gradle/caches/8.14.3/transforms/f95ab50c54d3211c648684c462933e30/transformed/profileinstaller-1.4.0/AndroidManifest.xml:50:25-92
+163            </intent-filter>
+164        </receiver>
+165
+166        <service
+166-->[com.google.android.datatransport:transport-backend-cct:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/ea620a6b5afc7c5e432bbec109041d91/transformed/transport-backend-cct-3.1.9/AndroidManifest.xml:28:9-34:19
+167            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+167-->[com.google.android.datatransport:transport-backend-cct:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/ea620a6b5afc7c5e432bbec109041d91/transformed/transport-backend-cct-3.1.9/AndroidManifest.xml:29:13-103
+168            android:exported="false" >
+168-->[com.google.android.datatransport:transport-backend-cct:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/ea620a6b5afc7c5e432bbec109041d91/transformed/transport-backend-cct-3.1.9/AndroidManifest.xml:30:13-37
+169            <meta-data
+169-->[com.google.android.datatransport:transport-backend-cct:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/ea620a6b5afc7c5e432bbec109041d91/transformed/transport-backend-cct-3.1.9/AndroidManifest.xml:31:13-33:39
+170                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+170-->[com.google.android.datatransport:transport-backend-cct:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/ea620a6b5afc7c5e432bbec109041d91/transformed/transport-backend-cct-3.1.9/AndroidManifest.xml:32:17-94
+171                android:value="cct" />
+171-->[com.google.android.datatransport:transport-backend-cct:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/ea620a6b5afc7c5e432bbec109041d91/transformed/transport-backend-cct-3.1.9/AndroidManifest.xml:33:17-36
+172        </service>
+173        <service
+173-->[com.google.android.datatransport:transport-runtime:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/1491c73c5d15eb22051217da9a2fb39c/transformed/transport-runtime-3.1.9/AndroidManifest.xml:26:9-30:19
+174            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+174-->[com.google.android.datatransport:transport-runtime:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/1491c73c5d15eb22051217da9a2fb39c/transformed/transport-runtime-3.1.9/AndroidManifest.xml:27:13-117
+175            android:exported="false"
+175-->[com.google.android.datatransport:transport-runtime:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/1491c73c5d15eb22051217da9a2fb39c/transformed/transport-runtime-3.1.9/AndroidManifest.xml:28:13-37
+176            android:permission="android.permission.BIND_JOB_SERVICE" >
+176-->[com.google.android.datatransport:transport-runtime:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/1491c73c5d15eb22051217da9a2fb39c/transformed/transport-runtime-3.1.9/AndroidManifest.xml:29:13-69
+177        </service>
+178
+179        <receiver
+179-->[com.google.android.datatransport:transport-runtime:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/1491c73c5d15eb22051217da9a2fb39c/transformed/transport-runtime-3.1.9/AndroidManifest.xml:32:9-34:40
+180            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+180-->[com.google.android.datatransport:transport-runtime:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/1491c73c5d15eb22051217da9a2fb39c/transformed/transport-runtime-3.1.9/AndroidManifest.xml:33:13-132
+181            android:exported="false" />
+181-->[com.google.android.datatransport:transport-runtime:3.1.9] /Users/abeythomas/.gradle/caches/8.14.3/transforms/1491c73c5d15eb22051217da9a2fb39c/transformed/transport-runtime-3.1.9/AndroidManifest.xml:34:13-37
+182    </application>
+183
+184</manifest>

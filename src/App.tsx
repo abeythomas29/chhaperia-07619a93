@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import SplashScreen from "@/components/SplashScreen";
 import { useState, useEffect } from "react";
+import { triggerSync } from "@/lib/offlineSync";
 import Login from "./pages/Login";
 import AdminLayout from "./layouts/AdminLayout";
 import WorkerLayout from "./layouts/WorkerLayout";
@@ -38,6 +39,7 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
+    triggerSync();
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 3000);

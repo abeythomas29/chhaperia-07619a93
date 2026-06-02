@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Loader2, Scissors, Search, Sigma, Trash2 } from "lucide-react";
+import { Loader2, Scissors, Search, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -47,7 +47,6 @@ export default function SlittingLogs() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [productFilter, setProductFilter] = useState<string>("all");
-  const [detailEntry, setDetailEntry] = useState<SlittingRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
@@ -201,13 +200,15 @@ export default function SlittingLogs() {
                   <TableHead className="text-right">Length (mtr)</TableHead>
                   <TableHead className="text-right">Area (sqm)</TableHead>
                   <TableHead className="text-right">Weight (kg)</TableHead>
-                  <TableHead className="text-right">Totals</TableHead>
+                  <TableHead className="text-right">GSM</TableHead>
+                  <TableHead className="text-right">Thickness (mm)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((e) => {
                   const t = computeTotals(e);
+                  const gsm = e.gsm ?? parseNum(e.notes, "GSM");
                   return (
                     <TableRow key={e.id}>
                       <TableCell>{format(new Date(e.date), "dd/MM/yy")}</TableCell>
@@ -218,11 +219,8 @@ export default function SlittingLogs() {
                       <TableCell className="text-right font-mono">{t.lengthMtr.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right font-mono">{t.sqm.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
                       <TableCell className="text-right font-mono">{t.kg > 0 ? t.kg.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => setDetailEntry(e)} title="View Totals" className="text-primary hover:text-primary">
-                          <Sigma className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      <TableCell className="text-right font-mono">{gsm > 0 ? gsm : "—"}</TableCell>
+                      <TableCell className="text-right font-mono">{e.thickness_mm ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => setDeleteId(e.id)} title="Delete" className="text-destructive hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
@@ -236,44 +234,6 @@ export default function SlittingLogs() {
           </div>
         )}
 
-        {/* Totals dialog */}
-        <Dialog open={!!detailEntry} onOpenChange={(open) => !open && setDetailEntry(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sigma className="h-5 w-5" /> Auto-Calculated Totals
-              </DialogTitle>
-              <DialogDescription>
-                {detailEntry?.product_codes?.code ?? "—"} · {detailEntry ? format(new Date(detailEntry.date), "dd/MM/yyyy") : ""}
-              </DialogDescription>
-            </DialogHeader>
-            {detailEntry && (() => {
-              const t = computeTotals(detailEntry);
-              const unit = detailEntry.unit;
-              const totalInUnit = unit === "kg" ? t.kg : unit === "sqm" ? t.sqm : t.lengthMtr;
-              const rows: [string, string][] = [
-                [`Total Quantity (${unit})`, totalInUnit > 0 ? `${totalInUnit.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${unit}` : "—"],
-                ["Total Rolls", t.rolls > 0 ? `${t.rolls.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "—"],
-                ["Total Length", `${t.lengthMtr.toLocaleString(undefined, { maximumFractionDigits: 2 })} mtr`],
-                ["Total Area", `${t.sqm.toLocaleString(undefined, { maximumFractionDigits: 2 })} sqm`],
-                ["Total Weight", t.kg > 0 ? `${t.kg.toLocaleString(undefined, { maximumFractionDigits: 2 })} kg` : "—"],
-              ];
-              return (
-                <div className="divide-y border rounded-md">
-                  {rows.map(([k, v]) => (
-                    <div key={k} className="flex items-center justify-between px-4 py-2.5">
-                      <span className="text-sm text-muted-foreground">{k}</span>
-                      <span className="font-mono font-semibold">{v}</span>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDetailEntry(null)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && !deleting && setDeleteId(null)}>
           <AlertDialogContent>

@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Scissors, Plus, Trash2, ChevronDown, Layers, Package } from "lucide-react";
 import { UNIT_OPTIONS } from "@/lib/units";
+import { queueOfflineEntry, isNetworkError } from "@/lib/offlineSync";
 
 interface ProductCode { id: string; code: string; category_id: string; }
 interface RollRow { width_mm: string; rolls_count: string; }
@@ -41,13 +42,32 @@ export default function SlittingEntryForm() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("product_codes")
-        .select("id, code, category_id")
-        .eq("status", "active")
-        .order("code");
-      setProductCodes(data ?? []);
-      setLoading(false);
+      // Instantly load from localStorage cache
+      const cached = localStorage.getItem("cache_se_product_codes");
+      if (cached) {
+        try {
+          setProductCodes(JSON.parse(cached));
+          setLoading(false);
+        } catch (e) {
+          console.error("Error parsing cached product codes", e);
+        }
+      }
+
+      try {
+        const { data } = await supabase
+          .from("product_codes")
+          .select("id, code, category_id")
+          .eq("status", "active")
+          .order("code");
+        if (data) {
+          setProductCodes(data);
+          localStorage.setItem("cache_se_product_codes", JSON.stringify(data));
+        }
+      } catch (err) {
+        console.error("Error fetching product codes", err);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
@@ -115,26 +135,53 @@ export default function SlittingEntryForm() {
       slitting_manager_id: user.id,
     }));
 
-    let { error } = await supabase.from("slitting_entries").insert(rowsToInsert as any);
+    let error = null;
+    let isQueuedOffline = false;
 
-    if (error?.code === "PGRST204" && error.message.includes("'gsm' column")) {
-      const fallbackRows = rowsToInsert.map(({ gsm, ...row }) => row);
-      const fallbackResult = await supabase.from("slitting_entries").insert(fallbackRows as any);
-      error = fallbackResult.error;
-    }
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    if (!navigator.onLine) {
+      queueOfflineEntry("slitting_entries", rowsToInsert);
+      isQueuedOffline = true;
     } else {
-      toast({ title: `Saved ${rowsToInsert.length} roll entries` });
-      setForm({
-        ...form,
-        source_width_mm: "", source_length_mtr: "", source_rolls: "",
-        source_gsm: "", source_thickness_mm: "",
-        roll_length_mtr: "", notes: "",
-      });
-      setRollRows([{ width_mm: "", rolls_count: "" }]);
+      try {
+        const res = await supabase.from("slitting_entries").insert(rowsToInsert as any);
+        error = res.error;
+
+        if (error?.code === "PGRST204" && error.message.includes("'gsm' column")) {
+          const fallbackRows = rowsToInsert.map(({ gsm, ...row }) => row);
+          const fallbackResult = await supabase.from("slitting_entries").insert(fallbackRows as any);
+          error = fallbackResult.error;
+        }
+      } catch (err) {
+        error = err;
+      }
+
+      if (error) {
+        if (isNetworkError(error)) {
+          queueOfflineEntry("slitting_entries", rowsToInsert);
+          isQueuedOffline = true;
+        } else {
+          toast({ title: "Error", description: error.message || String(error), variant: "destructive" });
+          setSubmitting(false);
+          return;
+        }
+      }
     }
+
+    if (!isQueuedOffline) {
+      toast({ title: `Saved ${rowsToInsert.length} roll entries` });
+    }
+
+    setForm({
+      ...form,
+      source_width_mm: "",
+      source_length_mtr: "",
+      source_rolls: "",
+      source_gsm: "",
+      source_thickness_mm: "",
+      roll_length_mtr: "",
+      notes: "",
+    });
+    setRollRows([{ width_mm: "", rolls_count: "" }]);
     setSubmitting(false);
   };
 
