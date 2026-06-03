@@ -153,12 +153,10 @@ export async function syncPendingEntries(): Promise<boolean> {
       let insertedRows: any[] | null = null;
 
       try {
-        let query = supabase.from(item.table).insert(finalPayload);
-        
-        // Always select returned columns to retrieve generated UUID/BigInt IDs
-        query = query.select();
-        
-        const { data, error } = await query;
+        const { data, error } = await (supabase as any)
+          .from(item.table)
+          .insert(finalPayload)
+          .select();
         insertError = error;
         insertedRows = data;
       } catch (err) {
