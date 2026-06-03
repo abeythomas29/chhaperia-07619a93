@@ -20,7 +20,7 @@ export async function getFinishedProductAvailable(productCodeId: string): Promis
       .select("cut_quantity_produced")
       .eq("product_code_id", productCodeId)
       .limit(5000),
-    supabase
+    (supabase as any)
       .from("head36_entries")
       .select("total_quantity, rolls_produced, length_per_tape_mtr")
       .eq("product_code_id", productCodeId)
