@@ -60,18 +60,21 @@ export default function UserManagement() {
   const { toast } = useToast();
 
   const fetchUsers = async () => {
-    const { data: profiles } = await supabase.from("profiles").select("*").order("name");
-    const { data: roles } = await supabase.from("user_roles").select("*");
-    const roleMap = new Map<string, string[]>();
-    roles?.forEach((r) => {
-      const existing = roleMap.get(r.user_id) ?? [];
-      existing.push(r.role);
-      roleMap.set(r.user_id, existing);
-    });
-    setUsers((profiles ?? []).map((p) => {
-      const userRoles = roleMap.get(p.user_id) ?? [];
-      return { ...p, roles: userRoles };
-    }));
+    const { data, error } = await supabase.rpc("admin_list_users");
+    if (error) {
+      toast({ title: "Error loading users", description: error.message, variant: "destructive" });
+      return;
+    }
+    setUsers((data ?? []).map((u: any) => ({
+      id: u.id,
+      user_id: u.user_id,
+      name: u.name,
+      employee_id: u.employee_id,
+      username: u.username,
+      status: u.status,
+      requested_department: u.requested_department,
+      roles: u.roles ?? [],
+    })));
   };
 
   useEffect(() => { fetchUsers(); }, []);
