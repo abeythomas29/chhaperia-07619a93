@@ -61,7 +61,7 @@ export default function AppUpdateBanner() {
 
   const handleUpdate = () => {
     const url = versionInfo?.update_url || PLAY_STORE_URL;
-    if (window.cordova || window.Capacitor) {
+    if ((window as any).cordova || (window as any).Capacitor) {
       // In Capacitor app context, open in system browser or Play Store app
       window.open(url, "_system");
     } else {
