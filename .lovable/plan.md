@@ -1,81 +1,28 @@
+## Goal
+Create `public.admin_list_users()` RPC so Admin → User Management lists every user — including auth users without a profile — and ensure new signups always get a profile row.
 
-## What's happening
+## Migration (non-destructive)
 
-The app's Supabase client points to `eezbgxbbgaqifgcxxbun` (your live backend). The 36 Head submit POST is returning:
+**1. Create `public.admin_list_users()` as `SECURITY DEFINER`**
+- Returns: `id uuid, user_id uuid, name text, employee_id text, username text, status text, requested_department text, roles text[]`
+- Guard: `IF NOT public.is_admin(auth.uid()) THEN RAISE EXCEPTION 'Not authorized'; END IF;`
+- Source: `auth.users u` LEFT JOIN `public.profiles p ON p.user_id = u.id` LEFT JOIN aggregated roles (`SELECT user_id, array_agg(role) FROM public.user_roles GROUP BY user_id`)
+- Fallback values when profile is missing: `name = COALESCE(p.name, split_part(u.email,'@',1), 'Unknown')`, `employee_id = COALESCE(p.employee_id, 'TBD')`, `username = COALESCE(p.username, u.email, '')`, `status = COALESCE(p.status, 'active')`, `requested_department = COALESCE(p.requested_department::text, 'worker')`, `roles = COALESCE(r.roles, ARRAY[]::text[])`
+- `id = COALESCE(p.id, u.id)` so the frontend key stays stable
+- `SET search_path = public, auth`
+- `GRANT EXECUTE ON FUNCTION public.admin_list_users() TO authenticated;` (revoke from anon)
 
-```
-404 PGRST205 — Could not find the table 'public.head36_entries' in the schema cache
-```
+**2. Re-assert signup trigger (idempotent, no data touched)**
+- `DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;`
+- `CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();`
+- `handle_new_user` already exists — not modified.
 
-The table simply does not exist in that backend. I cannot run migrations there from here — that project is not managed by Lovable Cloud. The fix has to be applied once, by hand, in that backend's SQL editor.
+**3. Backfill missing profiles (safe, additive)**
+- `INSERT INTO public.profiles (user_id, name, employee_id, username, requested_department) SELECT u.id, COALESCE(split_part(u.email,'@',1),'New User'), 'TBD', COALESCE(u.email,''), 'worker' FROM auth.users u LEFT JOIN public.profiles p ON p.user_id = u.id WHERE p.id IS NULL;`
+- Pure insert — never updates or deletes existing rows.
 
-## Plan
+## Frontend change
+`src/pages/admin/UserManagement.tsx` — replace the two `from("profiles")` + `from("user_roles")` fetches in `fetchUsers()` with a single `supabase.rpc("admin_list_users")` call, map the returned rows into the existing `UserRow` shape. No other UI changes.
 
-### Step 1 — You run this SQL in the live backend (`eezbgxbbgaqifgcxxbun` → SQL editor)
-
-```sql
--- 1. Table
-CREATE TABLE IF NOT EXISTS public.head36_entries (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  date date NOT NULL DEFAULT CURRENT_DATE,
-  slitting_entry_id uuid,
-  product_code_id uuid,
-  operator_id uuid NOT NULL,
-  rolls_taken numeric NOT NULL DEFAULT 0,
-  rolls_produced numeric NOT NULL DEFAULT 0,
-  roll_width_mm numeric,
-  length_per_tape_mtr numeric,
-  thickness_mm numeric,
-  gsm numeric,
-  total_quantity numeric,
-  unit text NOT NULL DEFAULT 'meters',
-  notes text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
--- 2. Grants (required — PostgREST won't see the table without these)
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.head36_entries TO authenticated;
-GRANT ALL ON public.head36_entries TO service_role;
-
--- 3. RLS
-ALTER TABLE public.head36_entries ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Authenticated can view head36 entries"
-  ON public.head36_entries FOR SELECT TO authenticated USING (true);
-
-CREATE POLICY "Slitting managers can insert own head36 entries"
-  ON public.head36_entries FOR INSERT TO authenticated
-  WITH CHECK (auth.uid() = operator_id AND public.has_role(auth.uid(), 'slitting_manager'));
-
-CREATE POLICY "Slitting managers can update own head36 entries"
-  ON public.head36_entries FOR UPDATE TO authenticated
-  USING (auth.uid() = operator_id AND public.has_role(auth.uid(), 'slitting_manager'))
-  WITH CHECK (auth.uid() = operator_id AND public.has_role(auth.uid(), 'slitting_manager'));
-
-CREATE POLICY "Admins can manage head36 entries"
-  ON public.head36_entries FOR ALL USING (public.is_admin(auth.uid()));
-
--- 4. Force PostgREST to pick up the new table
-NOTIFY pgrst, 'reload schema';
-```
-
-Notes:
-- Assumes `public.has_role(uuid, text)` and `public.is_admin(uuid)` already exist in the live backend (they do in the schema you're using here).
-- If your user account is missing the `slitting_manager` role in the live backend, the INSERT will still fail with an RLS error after the table exists. In that case also run, replacing the uuid with your `auth.users` id:
-  ```sql
-  INSERT INTO public.user_roles (user_id, role) VALUES ('<your-user-id>', 'slitting_manager')
-  ON CONFLICT DO NOTHING;
-  ```
-
-### Step 2 — Add a friendlier client error (frontend-only)
-
-In `src/pages/slitting/Head36Entry.tsx`, when the insert returns code `PGRST205`, show a clearer toast: "36 Head table is not provisioned in the backend yet. Ask an admin to run the head36_entries setup SQL." This avoids the raw Supabase message and points future users to the right fix instead of looping.
-
-No other app code changes are required — the existing insert payload already matches the table schema above.
-
-### Step 3 — Verify
-
-1. Reload the 36 Head page.
-2. Pick a source slitting entry, fill rolls produced, submit.
-3. Expect a success toast and no 404 in network requests against `/rest/v1/head36_entries`.
+## Out of scope
+No edits to existing users, roles, profiles, RLS policies, or `handle_new_user`. No destructive SQL.
